@@ -435,7 +435,6 @@ public class StatisticsDataVisits extends StatisticsData{
                                     name = name.substring(0, firstSpace) + " ...";
                                 }
                             }
-
                             return name;
 
                         case Constants.COLLECTION:
