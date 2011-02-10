@@ -154,6 +154,7 @@
 
                             <xsl:call-template name="buildFooter"/>
                         </div>
+                        <xsl:call-template name="extraBody-end"/>
                     </body>
                 </xsl:otherwise>
             </xsl:choose>
