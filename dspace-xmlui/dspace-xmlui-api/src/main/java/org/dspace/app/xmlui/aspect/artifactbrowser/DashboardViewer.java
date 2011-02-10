@@ -176,10 +176,9 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
         html = html + "]); var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));" +
             " chart.draw(data, {displayAnnotations: true}); }</script>";
+        division.addDivision("chart_div");
 
-        division.addSimpleHTMLFragment(false, "<![CDATA["+ html + "]]>");
-        division.addSimpleHTMLFragment(false, "<![CDATA[ <div id='chart_div' style='width: 700px; height: 240px;'></div> ]]>");
-
+        //division.addSimpleHTMLFragment(false, "&lt;![CDATA["+ html + " <div id='chart_div' style='width: 700px; height: 240px;'></div> ]]&gt;");
     }
 
     /**
