@@ -117,8 +117,8 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             UIException, SQLException, IOException, AuthorizeException
     {
         Division division = body.addDivision("comunity-browser", "primary");
-        division.setHead(T_head);
-        division.addPara(T_select);
+        division.setHead("Knowledge Bank Dashboard");
+        division.addPara("A collection of statistical queries about the size and traffic of the KB.");
 
         queryItemGrowthPerMonth(division);
         queryNumberOfItemsPerComm(division);
@@ -137,7 +137,9 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         TableRowIterator tri = DatabaseManager.query(context, query);
         List itemStatRows = tri.toList();
 
-        Table itemTable = division.addTable("number-of-items", itemStatRows.size(), 3);
+        division.addDivision("chart_div");
+        division.addPara().addButton("items_added_dataset_button", "show_hide_dataset").setValue("Show / Hide Dataset");
+        Table itemTable = division.addTable("items_added_monthly", itemStatRows.size(), 3);
         Row headerRow = itemTable.addRow(Row.ROLE_HEADER);
         headerRow.addCell().addContent("Date");
         headerRow.addCell().addContent("#Items Added");
@@ -176,7 +178,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
         html = html + "]); var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));" +
             " chart.draw(data, {displayAnnotations: true}); }</script>";
-        division.addDivision("chart_div");
+        
 
         //division.addSimpleHTMLFragment(false, "&lt;![CDATA["+ html + " <div id='chart_div' style='width: 700px; height: 240px;'></div> ]]&gt;");
     }
@@ -194,7 +196,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         TableRowIterator tri = DatabaseManager.query(context, query);
         List itemStatRows = tri.toList();
         
-        Table itemTable = division.addTable("number-of-items", itemStatRows.size(), 3);
+        Table itemTable = division.addTable("items_added_per_comm", itemStatRows.size(), 3);
         Row headerRow = itemTable.addRow(Row.ROLE_HEADER);
         headerRow.addCell().addContent("YearMonth");
         headerRow.addCell().addContent("community_id");
