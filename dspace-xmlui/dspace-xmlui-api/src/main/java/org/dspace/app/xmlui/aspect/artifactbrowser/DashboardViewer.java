@@ -50,6 +50,7 @@ import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.Body;
+import org.dspace.app.xmlui.wing.element.Button;
 import org.dspace.app.xmlui.wing.element.Cell;
 import org.dspace.app.xmlui.wing.element.Division;
 import org.dspace.app.xmlui.wing.element.PageMeta;
@@ -138,7 +139,9 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         List itemStatRows = tri.toList();
 
         division.addDivision("chart_div");
-        division.addPara().addButton("items_added_dataset_button", "show_hide_dataset").setValue("Show / Hide Dataset");
+        Button toggleButton = division.addPara().addButton("items_added_dataset_button", "show_hide_dataset");
+        toggleButton.setValue("Show/Hide Dataset");
+        
         Table itemTable = division.addTable("items_added_monthly", itemStatRows.size(), 3);
         Row headerRow = itemTable.addRow(Row.ROLE_HEADER);
         headerRow.addCell().addContent("Date");
