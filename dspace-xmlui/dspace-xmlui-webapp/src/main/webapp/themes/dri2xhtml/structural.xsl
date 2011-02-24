@@ -165,6 +165,7 @@
 
                             <xsl:call-template name="buildFooter"/>
                         </div>
+                        <xsl:call-template name="extraBody-end"/>
                     </body>
                 </xsl:otherwise>
             </xsl:choose>
@@ -394,6 +395,7 @@
                 <a target="_blank" href="http://library.osu.edu/projects-initiatives/knowledge-bank/">Knowledge Bank Center</a>
                 <xsl:text> | </xsl:text>
                 <a target="_blank" href="http://www.dspace.org/">DSpace</a>
+                <!-- bds: this is broken! 
                 <xsl:text> | </xsl:text>
                 <a>
                     <xsl:attribute name="href">
@@ -401,7 +403,7 @@
                         <xsl:text>/feedback</xsl:text>
                     </xsl:attribute>
                     <i18n:text>xmlui.dri2xhtml.structural.feedback-link</i18n:text>
-                </a>
+                </a>-->
             </div>
             <a>
                 <xsl:attribute name="href">
@@ -584,16 +586,17 @@
 
 
     <!-- bds: moving the trail in here, copied from the original in the buildHeader section -->
-<!--      also setting it to not appear on the home page or on the CC list page  -->
+<!--      also setting it to not appear on the home page  -->
 <!--      individual trail links are built with the match="dri:trail" template below -->
     <xsl:template name="trail">
-<!--        <xsl:choose>
+        <xsl:choose>
             <xsl:when test="/dri:document/dri:meta/dri:pageMeta/dri:metadata[@element='title']/i18n:text='xmlui.general.dspace_home'
-                      or /dri:document/dri:meta/dri:pageMeta/dri:metadata[@element='title']/i18n:text='xmlui.ArtifactBrowser.CommunityBrowser.title'
-                      or /dri:document/dri:body/dri:div[@rend='primary submission']">
+                            or /dri:document/dri:body/dri:div[@rend='primary submission']">
+                <!--      or /dri:document/dri:meta/dri:pageMeta/dri:metadata[@element='title']/i18n:text='xmlui.ArtifactBrowser.CommunityBrowser.title'
+                      -->
 
             </xsl:when>
-            <xsl:otherwise>-->
+            <xsl:otherwise>
                 <div id="breadCrumb0" class="breadCrumb">
                     <ul id="ds-trail">
 <!--                        <xsl:choose>
@@ -606,8 +609,8 @@
                         </xsl:choose>-->
                     </ul>
                 </div>
-<!--            </xsl:otherwise>
-        </xsl:choose>-->
+<!-- -->           </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
     <xsl:template match="dri:trail">
@@ -666,7 +669,7 @@
             </h3>
             <div class="ds-option-set">
                 <ul>
-                    <li><a href="https://kb.osu.edu/dspace/help/index.html" target="_blank">Help</a></li>
+                    <!--<li><a href="http://kb.osu.edu/dspace/help/index.html" target="_blank">Help</a></li>-->
                     <li><a href="http://library.osu.edu/projects-initiatives/knowledge-bank/">About</a></li>
                     <li><a href="http://library.osu.edu/about/contact-us/it-service-request/knowledge-bank/">Contact Us</a></li>
                 </ul>
@@ -759,7 +762,7 @@
             </h3>
             <div class="ds-option-set">
                 <ul>
-                    <li><a href="http://library.osu.edu/sites/kbinfo/kbsetupform.htm">Community Setup Form</a></li>
+                    <li><a href="http://library.osu.edu/projects-initiatives/knowledge-bank/tools/set-up-form">Community Setup Form</a></li>
                     <li><a href="http://library.osu.edu/sites/kbinfo/Knowledge_Bank_License_Agreement_2010.pdf">KB License Agreement</a></li>
                 </ul>
             </div>
@@ -1115,6 +1118,11 @@
             </xsl:call-template>
             <xsl:apply-templates select="dri:item"/>
         </ul>
+    </xsl:template>
+
+    <!-- bds: removing useless progress buttons in registration steps -->
+    <xsl:template match="dri:list[@n='registration-progress']" priority="3">
+        <xsl:apply-templates select="dri:head"/>
     </xsl:template>
 
     <xsl:template match="dri:list[@type='progress']/dri:item" priority="2">
@@ -2507,6 +2515,10 @@
         </xsl:if>
         <xsl:if test="@type= 'textarea'">
             <xsl:attribute name="onfocus">javascript:tFocus(this);</xsl:attribute>
+        </xsl:if>
+        <!-- bds: bigger boxes for title, citation, etc. -->
+        <xsl:if test="@rend='submit-text'">
+            <xsl:attribute name="size">60</xsl:attribute>
         </xsl:if>
     </xsl:template>
 

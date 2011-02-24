@@ -98,16 +98,16 @@
             </xsl:attribute>
             <xsl:text> </xsl:text>
         </script>
-        <script>
+        <script type="text/javascript">
             $(document).ready(function() {
                 $("#breadCrumb0").jBreadCrumb();
 
                 /* Linkify All Item Metadata content */
                 $('#aspect_artifactbrowser_ItemViewer_div_item-view table.ds-includeSet-table tr.ds-table-row td').not('td.addthis').each(function(){
                     var that = $(this),
-                    txt = that.html(),
-                    options = {callback: function( text, href ) {return href ? '<a href="' + href + '" title="' + href + '">' + text + '</a>' : text;}};
-                    that.html(linkify(txt, options ));
+                    text = that.html(),
+                    options = {callback: function( text, href ) {return href ? '<a href="' + href + '" title="' + text + '">' + text + '</a>' : text;}};
+                    that.html(linkify(text, options ));
                 });
             });
         </script>
@@ -157,6 +157,7 @@
     <!-- This is a named template to be an easy way to override to add something to the buildHead -->
     <xsl:template name="extraHead-top"></xsl:template>
     <xsl:template name="extraHead-bottom"></xsl:template>
+    <xsl:template name="extraBody-end"></xsl:template>
 
 
     <!-- Peter's RSS code for options box -->
