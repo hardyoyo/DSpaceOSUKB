@@ -770,6 +770,20 @@ public class SolrLogger
         }
         return name;
     }
+    
+    // Still need to Filter out bots
+    public static QueryResponse queryWithDateFacet(String query, String dateType, String dateStart, String dateEnd) throws SolrServerException
+    {
+        //dateType = one of { DAY / MONTH }
+        String filterQuery = null;
+        String facetField = null; //defaults to time
+        int max = -1;
+        dateType = "DAY";
+        List<String> facetQueries = null;
+        QueryResponse response = query(query, filterQuery, facetField, max, dateType, dateStart, dateEnd, facetQueries);
+
+        return response;
+    }
 
     private static QueryResponse query(String query, String filterQuery,
             String facetField, int max, String dateType, String dateStart,
@@ -788,7 +802,7 @@ public class SolrLogger
         {
             solrQuery.setParam("facet.date", "time")
                     .
-                    // EXAMPLE: NOW/MONTH+1MONTH
+                // EXAMPLE: NOW/MONTH+1MONTH
                     setParam("facet.date.end",
                             "NOW/" + dateType + dateEnd + dateType).setParam(
                             "facet.date.gap", "+1" + dateType)
