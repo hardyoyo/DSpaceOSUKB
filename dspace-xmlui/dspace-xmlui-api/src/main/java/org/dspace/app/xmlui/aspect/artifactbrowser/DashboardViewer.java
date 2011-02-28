@@ -43,8 +43,12 @@ package org.dspace.app.xmlui.aspect.artifactbrowser;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.FacetField;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.Message;
@@ -60,6 +64,15 @@ import org.dspace.app.xmlui.wing.element.Table;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Community;
 import org.dspace.core.Constants;
+import org.dspace.statistics.Dataset;
+import org.dspace.statistics.ObjectCount;
+import org.dspace.statistics.SolrLogger;
+import org.dspace.statistics.content.DatasetDSpaceObjectGenerator;
+import org.dspace.statistics.content.DatasetTimeGenerator;
+import org.dspace.statistics.content.StatisticsBSAdapter;
+import org.dspace.statistics.content.StatisticsDataVisits;
+import org.dspace.statistics.content.StatisticsListing;
+import org.dspace.statistics.content.StatisticsTable;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
@@ -123,6 +136,8 @@ public class DashboardViewer extends AbstractDSpaceTransformer
 
         queryItemGrowthPerMonth(division);
         queryNumberOfItemsPerComm(division);
+
+        getNumberOfVisitsToBitstream(division, 194902);
         //MaureenQuery1()
         //TscheraQuery1()
 
@@ -219,4 +234,46 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             dataRow.addCell().addContent(numItems.intValue());
         }
     }
+
+    /**
+     * Returns the number of visits for the item,
+     * depending on the visitype it can either be item, bitstream, total, ...
+     * @param visitType the type of visits we want, from the item, bitstream, total
+     * @param item the item from which we need our visits
+     * @return the number of visits
+     * @throws SolrServerException ....
+     */
+    public void getNumberOfVisitsToBitstream(Division division, int bitstreamID) throws WingException {
+        String dateType = "DAY";
+        String start = "-30";   // start == x DAYS ago, end == today or something.
+        String end = "+1";
+
+        String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
+
+        try
+        {
+            QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, start, end);
+            
+            FacetField timeFacet = response.getFacetDate("time");
+            log.debug("TIMEFACET HAS THIS MANY ENTRIES: "+timeFacet.getValueCount());
+            Table table = division.addTable("name", 1, timeFacet.getValueCount()); // change height, when we have multiple bs.
+            table.setHead("Bitstream table for "+bitstreamID);
+            Row header = table.addRow(Row.ROLE_HEADER);
+            Row dataRow = table.addRow(Row.ROLE_DATA);
+
+            List<FacetField.Count> times = timeFacet.getValues();
+
+            for (int i = 0; i < times.size(); i++)
+            {
+                FacetField.Count dateCount = times.get(i);
+                log.debug("dateCount["+i+"] == "+dateCount.getName() + " -- " + String.valueOf(dateCount.getCount()));
+                header.addCell().addContent(dateCount.getName());
+                dataRow.addCell().addContent(String.valueOf(dateCount.getCount()));
+            }
+        }
+        catch(SolrServerException sse)
+        {
+            log.debug(sse.getMessage());
+        }
+    } 
 }
