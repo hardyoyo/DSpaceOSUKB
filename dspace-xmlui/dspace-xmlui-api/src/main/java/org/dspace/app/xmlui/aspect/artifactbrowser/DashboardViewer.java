@@ -42,8 +42,6 @@ package org.dspace.app.xmlui.aspect.artifactbrowser;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -51,28 +49,18 @@ import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.UIException;
-import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.Body;
 import org.dspace.app.xmlui.wing.element.Button;
 import org.dspace.app.xmlui.wing.element.Cell;
 import org.dspace.app.xmlui.wing.element.Division;
 import org.dspace.app.xmlui.wing.element.PageMeta;
-import org.dspace.app.xmlui.wing.element.ReferenceSet;
 import org.dspace.app.xmlui.wing.element.Row;
 import org.dspace.app.xmlui.wing.element.Table;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.Community;
+import org.dspace.content.Bitstream;
 import org.dspace.core.Constants;
-import org.dspace.statistics.Dataset;
-import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
-import org.dspace.statistics.content.DatasetDSpaceObjectGenerator;
-import org.dspace.statistics.content.DatasetTimeGenerator;
-import org.dspace.statistics.content.StatisticsBSAdapter;
-import org.dspace.statistics.content.StatisticsDataVisits;
-import org.dspace.statistics.content.StatisticsListing;
-import org.dspace.statistics.content.StatisticsTable;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
@@ -91,24 +79,6 @@ public class DashboardViewer extends AbstractDSpaceTransformer
 {
     private static Logger log = Logger.getLogger(DashboardViewer.class);
 
-    /** Language Strings */
-    public static final Message T_dspace_home =
-        message("xmlui.general.dspace_home");
-
-    public static final Message T_title =
-        message("xmlui.ArtifactBrowser.CommunityBrowser.title");
-
-    public static final Message T_trail =
-        message("xmlui.ArtifactBrowser.CommunityBrowser.trail");
-    
-    public static final Message T_head =
-        message("xmlui.ArtifactBrowser.CommunityBrowser.head");
-
-    public static final Message T_select =
-        message("xmlui.ArtifactBrowser.CommunityBrowser.select");
-
-
-
     /**
      * Add a page title and trail links.
      */
@@ -117,10 +87,10 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             AuthorizeException
     {
         // Set the page title
-        pageMeta.addMetadata("title").addContent(T_title);
+        pageMeta.addMetadata("title").addContent("Dashboard");
 
-        pageMeta.addTrailLink(contextPath + "/",T_dspace_home);
-        pageMeta.addTrail().addContent(T_trail);
+        pageMeta.addTrailLink(contextPath + "/","KB Home");
+        pageMeta.addTrail().addContent("Dashboard");
     }
 
     /**
@@ -130,14 +100,14 @@ public class DashboardViewer extends AbstractDSpaceTransformer
     public void addBody(Body body) throws SAXException, WingException,
             UIException, SQLException, IOException, AuthorizeException
     {
-        Division division = body.addDivision("comunity-browser", "primary");
-        division.setHead("Knowledge Bank Dashboard");
+        Division division = body.addDivision("dashboard", "primary");
+        division.setHead("Dashboard");
         division.addPara("A collection of statistical queries about the size and traffic of the KB.");
 
         queryItemGrowthPerMonth(division);
         queryNumberOfItemsPerComm(division);
 
-        getNumberOfVisitsToBitstream(division, 194902);
+        addBitstreamsStatisticsVisits(division);
         //MaureenQuery1()
         //TscheraQuery1()
 
@@ -235,45 +205,107 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
     }
 
-    /**
-     * Returns the number of visits for the item,
-     * depending on the visitype it can either be item, bitstream, total, ...
-     * @param visitType the type of visits we want, from the item, bitstream, total
-     * @param item the item from which we need our visits
-     * @return the number of visits
-     * @throws SolrServerException ....
-     */
-    public void getNumberOfVisitsToBitstream(Division division, int bitstreamID) throws WingException {
-        String dateType = "DAY";
-        String start = "-30";   // start == x DAYS ago, end == today or something.
-        String end = "+1";
+    public void addBitstreamsStatisticsVisits(Division division) throws WingException
+    {
+        try {
+            int[] bitstreamIDs = { 194902, 194903, 211372, 211373, 211398, 211399, 211420, 211422, 211593, 211594, 211595, 211596, 211599, 211600,
+                                    211601, 211603, 211782, 211783, 212024, 212030, 213498, 213995, 214013 };
 
-        String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
+            //Set some constants
+            final String dateType = "DAY";
+            final String rangeStart = "-30";
+            final String rangeEnd = "+1";
 
-        try
-        {
-            QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, start, end);
-            
-            FacetField timeFacet = response.getFacetDate("time");
-            log.debug("TIMEFACET HAS THIS MANY ENTRIES: "+timeFacet.getValueCount());
-            Table table = division.addTable("name", 1, timeFacet.getValueCount()); // change height, when we have multiple bs.
-            table.setHead("Bitstream table for "+bitstreamID);
-            Row header = table.addRow(Row.ROLE_HEADER);
-            Row dataRow = table.addRow(Row.ROLE_DATA);
+            //Table dimensions are width of date range, and height of number of bitstreamID's to look at.
+            Table table = division.addTable("name", bitstreamIDs.length, getWidthOfTimeFacet(bitstreamIDs[0], dateType, rangeStart, rangeEnd) + 2); //Plus two for name beginning, and total at end
+            table.setHead("Bitstream table for Brian flickr");
 
-            List<FacetField.Count> times = timeFacet.getValues();
+            //Add the dates to the table
+            getNumberOfVisitsToBitstream(table, true, bitstreamIDs[0], dateType, rangeStart, rangeEnd);
 
-            for (int i = 0; i < times.size(); i++)
-            {
-                FacetField.Count dateCount = times.get(i);
-                log.debug("dateCount["+i+"] == "+dateCount.getName() + " -- " + String.valueOf(dateCount.getCount()));
-                header.addCell().addContent(dateCount.getName());
-                dataRow.addCell().addContent(String.valueOf(dateCount.getCount()));
+            //Add the values to the table. I'm assuming the width of each is the same.
+            for (int i = 0; i < bitstreamIDs.length; i++) {
+                getNumberOfVisitsToBitstream(table, false, bitstreamIDs[i], dateType, rangeStart, rangeEnd);
             }
         }
         catch(SolrServerException sse)
         {
-            log.debug(sse.getMessage());
+            log.error(sse.getMessage());
         }
-    } 
+        catch(SQLException sqle)
+        {
+            log.error(sqle.getMessage());
+        }
+    }
+
+    /**
+     * Utility function to get the width of the date range the proper way. Is small performance cost though.
+     * @param bitstreamID
+     * @param dateType
+     * @param rangeStart
+     * @param rangeEnd
+     * @return width of the date range
+     * @throws SolrServerException
+     */
+    private int getWidthOfTimeFacet(int bitstreamID, String dateType, String rangeStart, String rangeEnd) throws SolrServerException
+    {
+        String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
+        QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, rangeStart, rangeEnd);
+        FacetField timeFacet = response.getFacetDate("time");
+        return timeFacet.getValueCount();
+    }
+
+    /**
+     * Adds the date faceted statistical hits to this bitstream to the page.
+     * @param table DRI table to add results to
+     * @param isHeader True if this bitstream only adds the dates to the header, False is it is adding the data for this BS.
+     * @param bitstreamID Single bitstream ID to do a stats lookup on
+     * @param dateType What increment of time we want to facet the results. Good choices are: DAY, MONTH
+     * @param rangeStart Number of dateType ago to start the query. "-30" would be 30 Days/months ago.
+     * @param rangeEnd Number of dateType ago/future to end the query. "+1" would include the current day/month in the endpoint.
+     * @throws WingException, SolrServerException
+     */
+    public void getNumberOfVisitsToBitstream(Table table, boolean isHeader, int bitstreamID, String dateType, String rangeStart, String rangeEnd) throws WingException, SolrServerException, SQLException
+    {
+        String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
+        QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, rangeStart, rangeEnd);
+        FacetField timeFacet = response.getFacetDate("time");
+        List<FacetField.Count> times = timeFacet.getValues();
+
+        if(isHeader)
+        {
+            Row header = table.addRow(Row.ROLE_HEADER);
+            header.addCell().addContent("Bitstream");
+            for (int i = 0; i < times.size(); i++)
+            {
+                FacetField.Count dateCount = times.get(i);
+                header.addCell().addContent(dateCount.getName());
+            }
+            header.addCell().addContent("Total for range");
+        } else
+        {
+            Row dataRow = table.addRow(Row.ROLE_DATA);
+
+            //Hopefully database accesses don't take TOO long
+            Bitstream bs = Bitstream.find(context, bitstreamID);
+            String handle = bs.getParentObject().getHandle();
+            if (handle != null)
+            {
+                dataRow.addCell().addXref(contextPath+"/handle/"+handle, String.valueOf(bitstreamID));
+            }
+            else 
+            {
+                dataRow.addCell().addContent(bitstreamID);
+            }
+
+            long total = 0;
+            for (int i = 0; i < times.size(); i++)
+            {
+                FacetField.Count dateCount = times.get(i);
+                dataRow.addCell().addContent(String.valueOf(dateCount.getCount()));
+                total = total + dateCount.getCount();
+            }
+            dataRow.addCell().addContent(String.valueOf(total));
+        }
+    }
 }
