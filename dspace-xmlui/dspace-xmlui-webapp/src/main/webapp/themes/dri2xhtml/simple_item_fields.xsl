@@ -260,11 +260,8 @@
 
     <xsl:template name="addthis_button">
 <!-- bds:
-    I've placed this template here in simple_item_fields.xsl because it is being called
-    from another template here, where the needed values for title and URL are already
-    in scope. In order to make this more generic, such that it can be placed elsewhere on
-    the page, it will need to do a metadata fetch to get these values. See the
-    "Please use this URL to cite.." section in OSU-local.xsl for an example on how.
+    I've placed this template here in simple_item_fields.xsl
+    [for reasons I now no longer think are true..]
 
     If we want to make this button available at levels higher than just "item",
     we would need to get the page type from the DRI and build the URL and title
@@ -297,7 +294,6 @@
                 }
             </xsl:text>
         </script>
-            <span>
                 <a>
                     <xsl:attribute name="href">
                         <xsl:text>https://www.addthis.com/bookmark.php</xsl:text>
@@ -323,7 +319,6 @@
                         </xsl:attribute>
                     </img>
                 </a>
-            </span>
         <script>
             <xsl:attribute name="type">text/javascript</xsl:attribute>
             <xsl:attribute name="src">https://s7.addthis.com/js/250/addthis_widget.js</xsl:attribute>
@@ -895,9 +890,15 @@
             <xsl:when test="dim:field[@element='identifier'][@qualifier='doi']">
                 <tr class="ds-table-row {$phase}">
                     <td class="field-label"><span class="bold"><i18n:text>metadata.dc.identifier.doi</i18n:text>:</span></td>
-                    <td class="field-data doi">
+                    <td class="field-data">
                         <xsl:for-each select="dim:field[@element='identifier'][@qualifier='doi']">
-                            <xsl:text>http://dx.doi.org/</xsl:text><xsl:copy-of select="./node()"/>
+
+                            <a>
+                                <xsl:attribute name="href">http://dx.doi.org/<xsl:copy-of select="./node()"/>
+                                </xsl:attribute>
+                                <xsl:copy-of select="./node()"/>
+                            </a>
+
                             <xsl:if test="count(following-sibling::dim:field[@element='identifier'][@qualifier='doi']) != 0">
                                 <br />
                             </xsl:if>

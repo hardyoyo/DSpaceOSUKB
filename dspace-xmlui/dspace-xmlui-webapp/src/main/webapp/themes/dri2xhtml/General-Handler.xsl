@@ -1,45 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!--
-  DS-METS-1.0.xsl
 
-  Version: $Revision: 4902 $
- 
-  Date: $Date: 2010-05-10 00:29:48 -0400 (Mon, 10 May 2010) $
- 
-  Copyright (c) 2002-2005, Hewlett-Packard Company and Massachusetts
-  Institute of Technology.  All rights reserved.
- 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
- 
-  - Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
- 
-  - Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
- 
-  - Neither the name of the Hewlett-Packard Company nor the name of the
-  Massachusetts Institute of Technology nor the names of their
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
- 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
+    The contents of this file are subject to the license and copyright
+    detailed in the LICENSE and NOTICE files at the root of the source
+    tree and available online at
+
+    http://www.dspace.org/license/
+
 -->
-
 <!--
     Author: Alexey Maslov
     Description: This stylesheet contains templates to perform tasks associated with metadata visualization
@@ -155,7 +123,7 @@
                 </xsl:when>
                 <!-- Otherwise, iterate over and display all of them -->
                 <xsl:otherwise>
-                    <xsl:apply-templates select="mets:file"> 
+                    <xsl:apply-templates select="mets:file">
                         <xsl:with-param name="context" select="$context"/>
                     </xsl:apply-templates>
                 </xsl:otherwise>
@@ -199,20 +167,20 @@
             <!-- File size always comes in bytes and thus needs conversion --> 
             <td>
                 <xsl:choose>
-                    <xsl:when test="@SIZE &lt; 1000">
+                    <xsl:when test="@SIZE &lt; 1024">
                         <xsl:value-of select="@SIZE"/>
                         <i18n:text>xmlui.dri2xhtml.METS-1.0.size-bytes</i18n:text>
                     </xsl:when>
-                    <xsl:when test="@SIZE &lt; 1000000">
-                        <xsl:value-of select="substring(string(@SIZE div 1000),1,5)"/>
+                    <xsl:when test="@SIZE &lt; 1024 * 1024">
+                        <xsl:value-of select="substring(string(@SIZE div 1024),1,5)"/>
                         <i18n:text>xmlui.dri2xhtml.METS-1.0.size-kilobytes</i18n:text>
                     </xsl:when>
-                    <xsl:when test="@SIZE &lt; 1000000000">
-                        <xsl:value-of select="substring(string(@SIZE div 1000000),1,5)"/>
+                    <xsl:when test="@SIZE &lt; 1024 * 1024 * 1024">
+                        <xsl:value-of select="substring(string(@SIZE div (1024 * 1024)),1,5)"/>
                         <i18n:text>xmlui.dri2xhtml.METS-1.0.size-megabytes</i18n:text>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:value-of select="substring(string(@SIZE div 1000000000),1,5)"/>
+                        <xsl:value-of select="substring(string(@SIZE div (1024 * 1024 * 1024)),1,5)"/>
                         <i18n:text>xmlui.dri2xhtml.METS-1.0.size-gigabytes</i18n:text>
                     </xsl:otherwise>
                 </xsl:choose>
@@ -298,14 +266,29 @@
             <xsl:if test="@USE='CC-LICENSE'">
                 <!-- bds: get pointer to RDF of CC-license info from METS doc -->
                 <xsl:variable name="CC_license_RDF_URL">
-                    <xsl:text>cocoon:/</xsl:text>
+                    <xsl:text>http://localhost:8080</xsl:text>
                     <!-- bds: using substring('foo',string-length($context-path) + 1) 
                     to remove "/dspace" from the URL found in the mets document,
                     thus making the cocoon link correct, however this method _might_
                     have unforseen problems in other systems. The other option would be
                     to use base-url (probably http://localhost:8080) instead of the
-                    cocoon:/ connection, but that could have performance implications -->
-                    <xsl:value-of select="substring(/mets:METS/mets:fileSec/mets:fileGrp/mets:file/mets:FLocat[@xlink:title='license_rdf']/@xlink:href,string-length($context-path) + 1)"/>
+                    cocoon:/ connection, but that could have performance implications.
+
+		UPDATE: Post 1.7.1 upgrade, this somehow conflicts with the "Appears in Collections" list
+		as rendered in structural.xsl as a DetailList. The problem lies in having two document()
+		calls both to cocoon:// URLs. Now instead using the localhost:8080 connection here.
+
+		A better solution might be to replace these document() calls with a pipeline stage
+		that transforms the documents into what exactly is needed and then to use xi:include at
+		this level to include the results here. That would also mean the XInclude namespace would
+		need added [somewhere?] (see xmlns:xi="http://www.w3.org/2001/XInclude") and the XInclude
+		transform added to [some xmap file?]
+
+		See http://cocoon.apache.org/2.1/faq/faq-xslt.html
+
+ -->
+                    <xsl:value-of select="/mets:METS/mets:fileSec/mets:fileGrp/mets:file/mets:FLocat[@xlink:title='license_rdf']/@xlink:href"/>
+                    <!--<xsl:value-of select="substring(/mets:METS/mets:fileSec/mets:fileGrp/mets:file/mets:FLocat[@xlink:title='license_rdf']/@xlink:href,string-length($context-path) + 1)"/>-->
                 </xsl:variable>
                 <xsl:comment> CC_license_RDF_URL: <xsl:value-of select="$CC_license_RDF_URL"/> </xsl:comment>
                 <!-- bds: extract the creativecommons.org link from the RDF -->

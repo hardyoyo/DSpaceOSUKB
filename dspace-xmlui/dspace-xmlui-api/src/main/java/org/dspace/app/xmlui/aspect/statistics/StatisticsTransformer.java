@@ -1,12 +1,9 @@
 /**
- * $Id: StatisticsTransformer.java 4402 2009-10-07 08:31:24Z mdiggory $
- * $URL: https://scm.dspace.org/svn/repo/modules/dspace-stats/trunk/dspace-xmlui-stats/src/main/java/org/dspace/app/xmlui/aspect/statistics/StatisticsTransformer.java $
- * *************************************************************************
- * Copyright (c) 2002-2009, DuraSpace.  All rights reserved
- * Licensed under the DuraSpace Foundation License.
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
  *
- * A copy of the DuraSpace License has been included in this
- * distribution and is available at: http://scm.dspace.org/svn/repo/licenses/LICENSE.txt
+ * http://www.dspace.org/license/
  */
 package org.dspace.app.xmlui.aspect.statistics;
 
@@ -54,7 +51,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         pageMeta.addTrailLink(contextPath + "/",T_dspace_home);
 
         if(dso != null)
-            HandleUtil.buildHandleTrail(dso,pageMeta,contextPath);
+        {
+            HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
+        }
         pageMeta.addTrailLink(contextPath + "/handle" + (dso != null && dso.getHandle() != null ? "/" + dso.getHandle() : "/statistics"), T_statistics_trail);
 
         // Add the page title
@@ -76,13 +75,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 			{
 				renderViewer(body, dso);
 			}
-			
-			/* TODO: Fix rendering of Home Page Statistics
 			else
 			{
 				renderHome(body);
 			}
-			*/
 			
 		} catch (Throwable t) {
 			log.error(t.getMessage(), t);
@@ -95,7 +91,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 		Division home = body.addDivision("home", "primary repository");
 		Division division = home.addDivision("stats", "secondary stats");
 		division.setHead(T_head_title);
-
+        /*
 		try {
 
 			StatisticsTable statisticsTable = new StatisticsTable(
@@ -111,21 +107,28 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 			addDisplayTable(division, statisticsTable);
 
 		} catch (Exception e) {
-			log.error("Error occured while creating statistics for home page",
+			log.error("Error occurred while creating statistics for home page",
 					e);
 		}
-		
+		*/
 		try {
+            /** List of the top 10 items for the entire repository **/
 			StatisticsListing statListing = new StatisticsListing(
 					new StatisticsDataVisits());
 
 			statListing.setTitle(T_head_visits_total);
 			statListing.setId("list1");
 
+            //Adding a new generator for our top 10 items without a name length delimiter
+            DatasetDSpaceObjectGenerator dsoAxis = new DatasetDSpaceObjectGenerator();
+            dsoAxis.addDsoChild(Constants.ITEM, 10, false, -1);
+            statListing.addDatasetGenerator(dsoAxis);
+
+            //Render the list as a table
 			addDisplayListing(division, statListing);
 
 		} catch (Exception e) {
-			log.error("Error occured while creating statistics for home page", e);
+			log.error("Error occurred while creating statistics for home page", e);
 		}
 
 	}
@@ -177,7 +180,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             } catch (Exception e) {
                 log.error(
-                    "Error occured while creating top-items statistics for dso with ID: "
+                    "Error occurred while creating top-items statistics for dso with ID: "
                     + dso.getID() + " and type " + dso.getType()
                     + " and handle: " + dso.getHandle(), e);
             }
@@ -319,9 +322,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addDisplayListing(division, statListing);
         } catch (Exception e) {
             log.error(
-                "Error occured while creating statistics for dso with ID: "
-                + dso.getID() + " and type " + dso.getType()
-                + " and handle: " + dso.getHandle(), e);
+                    "Error occurred while creating statistics for dso with ID: "
+                            + dso.getID() + " and type " + dso.getType()
+                            + " and handle: " + dso.getHandle(), e);
         }
 
     }
@@ -346,9 +349,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addDisplayListing(division, statListing);
         } catch (Exception e) {
             log.error(
-                "Error occured while creating statistics for dso with ID: "
-                + dso.getID() + " and type " + dso.getType()
-                + " and handle: " + dso.getHandle(), e);
+                    "Error occurred while creating statistics for dso with ID: "
+                            + dso.getID() + " and type " + dso.getType()
+                            + " and handle: " + dso.getHandle(), e);
         }
     }
 
@@ -388,7 +391,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 			Table table = wrapper.addTable("list-table", 1, 1,
 					title == null ? "" : "tableWithTitle");
 			if (title != null)
-				table.setHead(message(title));
+            {
+                table.setHead(message(title));
+            }
 
 			/** Generate Header Row */
 			Row headerRow = table.addRow();
@@ -441,7 +446,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 			Table table = mainDiv.addTable("list-table", matrix.length, 2,
 					title == null ? "" : "tableWithTitle");
 			if (title != null)
-				table.setHead(message(title));
+            {
+                table.setHead(message(title));
+            }
 
 			Row headerRow = table.addRow();
 

@@ -282,6 +282,8 @@ ul.ds-options-list {
 div#homepage-body {
     padding: 5px 20px;
     font-size: 0.9em;
+    width: 65%;
+    float:left;
 }
 div#homepage-body h1 {
     padding: 0 !important;
@@ -1386,6 +1388,7 @@ li.current-page-link a {
 div#ds-feed-option img
 {
     padding-right: 5px;
+    border: none;
 }
 
 div#ds-feed-option li
