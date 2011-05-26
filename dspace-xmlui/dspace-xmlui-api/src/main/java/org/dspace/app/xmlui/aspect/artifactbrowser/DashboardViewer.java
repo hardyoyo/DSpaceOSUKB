@@ -309,10 +309,10 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
     }
 
-    public void addMonthlyTopDownloads(Division division)
+    /**public void addMonthlyTopDownloads(Division division)
     {
         String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
         QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, rangeStart, rangeEnd);
         QueryResponse response = SolrLogger.query(query, max);
-    }
+    }  */
 }
