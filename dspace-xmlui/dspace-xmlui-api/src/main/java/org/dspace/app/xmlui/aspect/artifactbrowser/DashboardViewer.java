@@ -43,6 +43,10 @@ package org.dspace.app.xmlui.aspect.artifactbrowser;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.FacetField;
@@ -50,13 +54,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.WingException;
-import org.dspace.app.xmlui.wing.element.Body;
-import org.dspace.app.xmlui.wing.element.Button;
-import org.dspace.app.xmlui.wing.element.Cell;
-import org.dspace.app.xmlui.wing.element.Division;
-import org.dspace.app.xmlui.wing.element.PageMeta;
-import org.dspace.app.xmlui.wing.element.Row;
-import org.dspace.app.xmlui.wing.element.Table;
+import org.dspace.app.xmlui.wing.element.*;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.core.Constants;
@@ -104,10 +102,42 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         division.setHead("Dashboard");
         division.addPara("A collection of statistical queries about the size and traffic of the KB.");
 
-        queryItemGrowthPerMonth(division);
-        queryNumberOfItemsPerComm(division);
+        Division search = body.addInteractiveDivision("choose-report", contextPath+"/dashboard", Division.METHOD_GET, "primary");
+        search.setHead("Statistical Report Generation");
+        org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
+        actionsList.addLabel("Label for action list");
+        Item actionSelectItem = actionsList.addItem();
+        Radio actionSelect = actionSelectItem.addRadio("report_name");
+        actionSelect.setLabel("Choose a Report to View");
+        actionSelect.addOption(false, "itemgrowth", "Total Item Growth");
+        actionSelect.addOption(false, "commitems", "Items in Communities");
+        actionSelect.addOption(false, "bitstreamVisits", "Bitstream Visits");
 
-        addBitstreamsStatisticsVisits(division);
+        Para buttons = search.addPara();
+        buttons.addButton("submit_add").setValue("Create Report");
+
+        Request request = ObjectModelHelper.getRequest(objectModel);
+        String reportName = request.getParameter("report_name");
+
+        if (StringUtils.isEmpty(reportName)) {
+            reportName = "";
+        }
+
+        if(reportName.equals("itemgrowth"))
+        {
+            queryItemGrowthPerMonth(division);
+        } else if(reportName.equals("commitems"))
+        {
+            queryNumberOfItemsPerComm(division);
+        } else if(reportName.equals("bitstreamVisits"))
+        {
+            addBitstreamsStatisticsVisits(division);
+        }
+
+
+
+
+
         //MaureenQuery1()
         //TscheraQuery1()
 
