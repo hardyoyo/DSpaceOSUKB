@@ -248,6 +248,11 @@
 	    <servlet-class>org.dspace.app.statistics.ContentStatistics</servlet-class>
     </servlet>
 
+    <servlet>
+	    <servlet-name>growth-statistics</servlet-name>
+	    <servlet-class>org.dspace.app.statistics.GrowthStatistics</servlet-class>
+    </servlet>
+
     <!-- URL space mappings ============================================= -->
 
     <!--
@@ -264,6 +269,11 @@
     <servlet-mapping>
         <servlet-name>content-statistics</servlet-name>
         <url-pattern>/content-statistics</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>growth-statistics</servlet-name>
+        <url-pattern>/growth-statistics</url-pattern>
     </servlet-mapping>
 
     <!--
