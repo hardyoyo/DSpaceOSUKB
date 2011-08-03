@@ -58,6 +58,7 @@ import org.dspace.app.xmlui.wing.element.*;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.core.Constants;
+import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
@@ -96,8 +97,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
      * collection metadata.
      */
     public void addBody(Body body) throws SAXException, WingException,
-            UIException, SQLException, IOException, AuthorizeException
-    {
+            UIException, SQLException, IOException, AuthorizeException {
         Division division = body.addDivision("dashboard", "primary");
         division.setHead("Dashboard");
         division.addPara("A collection of statistical queries about the size and traffic of the KB.");
@@ -112,6 +112,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         actionSelect.addOption(false, "itemgrowth", "Total Item Growth");
         actionSelect.addOption(false, "commitems", "Items in Communities");
         actionSelect.addOption(false, "bitstreamVisits", "Bitstream Visits");
+        actionSelect.addOption(false, "topDownloadsMonth", "Top Downloads for Month");
 
         Para buttons = search.addPara();
         buttons.addButton("submit_add").setValue("Create Report");
@@ -132,6 +133,9 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         } else if(reportName.equals("bitstreamVisits"))
         {
             addBitstreamsStatisticsVisits(division);
+        } else if (reportName.equals("topDownloadsMonth"))
+        {
+            addMonthlyTopDownloads(division);
         }
 
 
@@ -339,10 +343,42 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
     }
 
-    /**public void addMonthlyTopDownloads(Division division)
-    {
-        String query = "type: " + Constants.BITSTREAM + " AND id: " + bitstreamID;
-        QueryResponse response = SolrLogger.queryWithDateFacet(query, dateType, rangeStart, rangeEnd);
-        QueryResponse response = SolrLogger.query(query, max);
-    }  */
+    public void addMonthlyTopDownloads(Division division) throws WingException {
+        /**
+         q=type:0+AND+owningComm:[0%20TO%209999999]+AND+-dns:msnbot-*
+         &facet.mincount=1
+         &facet.field=id
+         &facet=true
+         &fq=-isBot%3Atrue
+         &fq=%28time%3A[2011-07-01T00%3A00%3A00.000Z+TO+2011-08-01T00%3A00%3A00.000Z]%29
+         &facet.limit=25
+         **/
+
+        //q=type:0+AND+owningComm:[0%20TO%209999999]+AND+-dns:msnbot-*+-isBot:true+time:[2011-07-01T00%3A00%3A00.000Z+TO+2011-08-01T00%3A00%3A00.000Z]
+        String query = "type:0%20AND%20owningComm:[0%20TO%209999999]%20AND%20-dns:msnbot-*%20-isBot:true%20time:[2011-07-01T00%3A00%3A00.000Z%20TO%202011-08-01T00%3A00%3A00.000Z]";
+        //TODO Query not working
+
+        ObjectCount[] objectCounts = new ObjectCount[0];
+        try {
+            objectCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
+
+        } catch (SolrServerException e) {
+            log.error("Top Downloads query failed.");
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        Table table = division.addTable("topDownloads",objectCounts.length +1, 2);
+        Row header = table.addRow(Row.ROLE_HEADER);
+        header.addCell().addContent("Bitstream");
+        header.addCell().addContent("Number of Hits");
+
+        for(int i=0; i< objectCounts.length; i++)
+        {
+            Row row = table.addRow(Row.ROLE_DATA);
+            row.addCell().addContent(objectCounts[i].getValue());
+            row.addCell().addContent((int) objectCounts[i].getCount());
+        }
+
+
+    }
 }
