@@ -22,10 +22,11 @@
     xmlns:mets="http://www.loc.gov/METS/"
     xmlns:xlink="http://www.w3.org/TR/xlink/"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"
+    xmlns:dim="http://www.dspace.org/xmlns/dspace/dim"
     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
     xmlns:cc="http://creativecommons.org/ns#"
     xmlns="http://www.w3.org/1999/xhtml"
-    exclude-result-prefixes="i18n dri mets xlink xsl rdf cc">
+    exclude-result-prefixes="i18n dri mets xlink xsl dim rdf cc">
 
     <xsl:output indent="yes"/>
     
@@ -70,7 +71,11 @@
                     <xsl:attribute name="href">
                         <xsl:value-of select="mets:fileGrp[@USE='CONTENT']/mets:file[@GROUPID=$GROUPID]/mets:FLocat[@LOCTYPE='URL']/@xlink:href" />
                     </xsl:attribute>
-                    <img alt="Thumbnail">
+                    <img>
+                        <xsl:attribute name="alt">
+                            <xsl:text>Thumbnail of </xsl:text>
+                            <xsl:value-of select="/mets:METS/mets:dmdSec/mets:mdWrap/mets:xmlData/dim:dim/dim:field[@element='title']"/>
+                        </xsl:attribute>
                         <xsl:attribute name="src">
                             <xsl:value-of select="mets:fileGrp[@USE='THUMBNAIL']/mets:file[@GROUPID=$GROUPID]/mets:FLocat[@LOCTYPE='URL']/@xlink:href" />
                         </xsl:attribute>
@@ -206,7 +211,11 @@
                             <xsl:attribute name="href">
                                 <xsl:value-of select="mets:FLocat[@LOCTYPE='URL']/@xlink:href"/>
                             </xsl:attribute>
-                            <img alt="Thumbnail">
+                            <img>
+                                <xsl:attribute name="alt">
+                                    <xsl:text>Thumbnail of </xsl:text>
+                                    <xsl:value-of select="/mets:METS/mets:dmdSec/mets:mdWrap/mets:xmlData/dim:dim/dim:field[@element='title']"/>
+                                </xsl:attribute>
                                 <xsl:attribute name="src">
                                     <xsl:value-of select="$context/mets:fileSec/mets:fileGrp[@USE='THUMBNAIL']/
                                         mets:file[@GROUPID=current()/@GROUPID]/mets:FLocat[@LOCTYPE='URL']/@xlink:href"/>
@@ -320,8 +329,10 @@
     <xsl:template match="mets:fileGrp[@USE='LOGO']">
         <div class="ds-logo-wrapper">
             <img src="{mets:file/mets:FLocat[@LOCTYPE='URL']/@xlink:href}" class="logo">
-                <xsl:attribute name="alt">xmlui.dri2xhtml.METS-1.0.collection-logo-alt</xsl:attribute>
-                <xsl:attribute name="attr" namespace="http://apache.org/cocoon/i18n/2.1">alt</xsl:attribute>
+                <xsl:attribute name="alt">
+                    <xsl:value-of select="/mets:METS/mets:dmdSec/mets:mdWrap/mets:xmlData/dim:dim/dim:field[@element='title']"/>
+                    <xsl:text> logo</xsl:text>
+                </xsl:attribute>
             </img>
         </div>
     </xsl:template>

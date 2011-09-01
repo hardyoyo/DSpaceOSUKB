@@ -456,33 +456,30 @@ public class SolrLogger
 
     public static void markRobotsByIP()
     {
-        for(String ip : SpiderDetector.getSpiderIpAddresses()){
-
-            try {
-
+        try {
+            for(String ip : SpiderDetector.getSpiderIpAddresses()){
                 /* Result Process to alter record to be identified as a bot */
-                ResultProcessor processor = new ResultProcessor(){
-                    public void process(SolrDocument doc) throws IOException, SolrServerException {
-                        doc.removeFields("isBot");
-                        doc.addField("isBot", true);
-                        SolrInputDocument newInput = ClientUtils.toSolrInputDocument(doc);
-                        solr.add(newInput);
-                        log.info("Marked " + doc.getFieldValue("ip") + " as bot");
-                    }
-                };
+                // Changed to using Impl block below
+                ResultProcessor processor = new ResultProcessorDeleteAddImpl();
 
                 /* query for ip, exclude results previously set as bots. */
-                processor.execute("ip:"+ip+ "* AND -isBot:true");
-
-                solr.commit();
-
-            } catch (Exception e) {
-                log.error(e.getMessage(),e);
+                if (ip.matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+"))  {
+                    // Full 4 octet string, run as-is.
+                    processor.execute("ip:" + ip + " AND -isBot:true");
+                } else if (ip.matches(".*\\.$"))  {
+                    // didn't match full-octet, but ends in period, we assume it was something like #.#.#. or #.#.
+                    processor.execute("ip:" + ip + "* AND -isBot:true");
+                } else if (ip.matches(".*[0-9]$"))  {
+                    // ends with a number, and is not a full 4-octet as first entry, so we append .*
+                    processor.execute("ip:" + ip + ".* AND -isBot:true");
+                } else {
+                    log.error("Unexpected IP value: " + ip);
+                }
             }
-
-
+            solr.commit();
+        } catch (Exception e) {
+                log.error(e.getMessage(),e);
         }
-
     }
 
     public static void markRobotByUserAgent(String agent){
@@ -958,6 +955,41 @@ public class SolrLogger
             System.err.println(sse.getMessage());
         } catch (IOException ioe) {
             System.err.println(ioe.getMessage());
+        }
+    }
+
+    public static void forceCommit() {
+        try {
+            solr.commit();
+        } catch (SolrServerException sse)
+        {
+            log.error(sse.getMessage());
+        } catch (IOException ex)
+        {
+            log.error(ex.getMessage());
+        }
+    }
+
+    private static class ResultProcessorDeleteAddImpl extends ResultProcessor {
+
+        public ResultProcessorDeleteAddImpl() {
+        }
+
+        public void process(SolrDocument doc) throws IOException, SolrServerException {
+            doc.removeFields("isBot");
+            doc.addField("isBot", true);
+            SolrInputDocument newInput = ClientUtils.toSolrInputDocument(doc);
+            Integer type = (Integer) doc.getFieldValue("type");
+            Integer id = (Integer) doc.getFieldValue("id");
+            String ip = (String) doc.getFieldValue("ip");
+
+            String time = DateFormatUtils.formatUTC((Date)doc.getFieldValue("time"), SolrLogger.DATE_FORMAT_8601);
+
+            //Uniquely remove previous entry. Should be safe to assume only one request to a specified resource by a single user per millisecond.
+            solr.deleteByQuery("type:" + type + " AND id:" + id + " AND ip:" + ip + " AND time:[" + time + " TO " + time +"]");
+
+            solr.add(newInput);
+            log.info("Marked " + doc.getFieldValue("ip") + " as bot");
         }
     }
     
