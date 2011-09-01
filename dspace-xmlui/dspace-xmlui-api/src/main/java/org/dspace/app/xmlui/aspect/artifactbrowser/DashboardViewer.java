@@ -57,6 +57,8 @@ import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.*;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
+import org.dspace.content.Bundle;
+import org.dspace.content.Collection;
 import org.dspace.core.Constants;
 import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
@@ -344,19 +346,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
     }
 
     public void addMonthlyTopDownloads(Division division) throws WingException {
-        /**
-         q=type:0+AND+owningComm:[0%20TO%209999999]+AND+-dns:msnbot-*
-         &facet.mincount=1
-         &facet.field=id
-         &facet=true
-         &fq=-isBot%3Atrue
-         &fq=%28time%3A[2011-07-01T00%3A00%3A00.000Z+TO+2011-08-01T00%3A00%3A00.000Z]%29
-         &facet.limit=25
-         **/
-
-        //q=type:0+AND+owningComm:[0%20TO%209999999]+AND+-dns:msnbot-*+-isBot:true+time:[2011-07-01T00%3A00%3A00.000Z+TO+2011-08-01T00%3A00%3A00.000Z]
-        String query = "type:0%20AND%20owningComm:[0%20TO%209999999]%20AND%20-dns:msnbot-*%20-isBot:true%20time:[2011-07-01T00%3A00%3A00.000Z%20TO%202011-08-01T00%3A00%3A00.000Z]";
-        //TODO Query not working
+        String query = "type:0 AND owningComm:[0 TO 9999999] AND -dns:msnbot-* AND -isBot:true AND time:[2011-08-01T00:00:00.000Z TO 2011-09-01T00:00:00.000Z]";
 
         ObjectCount[] objectCounts = new ObjectCount[0];
         try {
@@ -367,16 +357,55 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
 
-        Table table = division.addTable("topDownloads",objectCounts.length +1, 2);
+        Division downloadsDivision = division.addDivision("top-downloads", "primary");
+        downloadsDivision.setHead("Top Bitstream Downloads for Month");
+        downloadsDivision.addPara("The Top 50 Bitstream Downloads for the month of August 2011.");
+
+
+        // Bitstream  | Bundle | Item Title | Collection Name | Number of Hits |
+
+        Table table = downloadsDivision.addTable("topDownloads",objectCounts.length +1, 2);
         Row header = table.addRow(Row.ROLE_HEADER);
         header.addCell().addContent("Bitstream");
+        header.addCell().addContent("Bundle");
+        header.addCell().addContent("Item");
+        header.addCell().addContent("Collection");
         header.addCell().addContent("Number of Hits");
 
         for(int i=0; i< objectCounts.length; i++)
         {
             Row row = table.addRow(Row.ROLE_DATA);
-            row.addCell().addContent(objectCounts[i].getValue());
-            row.addCell().addContent((int) objectCounts[i].getCount());
+            Cell bitstreamCell = row.addCell();
+            Cell bundleCell = row.addCell();
+            Cell itemCell = row.addCell();
+            Cell collectionCell = row.addCell();
+            Cell hitsCell = row.addCell();
+
+            String objectValue = objectCounts[i].getValue();
+            if(objectValue.equals("total")) {
+                bitstreamCell.addContent(objectValue);
+            } else {
+                Integer bitstreamID = Integer.parseInt(objectCounts[i].getValue());
+                try {
+                    Bitstream bitstream = Bitstream.find(context, bitstreamID);
+                    bitstream.getName().length();
+                    bitstreamCell.addXref(contextPath + "/bitstream/id/" + bitstreamID + "/" + bitstream.getName(), StringUtils.abbreviate(bitstream.getName(), 50));
+
+                    Bundle bundle = bitstream.getBundles()[0];
+                    bundleCell.addContent(bundle.getName());
+
+                    org.dspace.content.Item item = bundle.getItems()[0];
+                    itemCell.addXref(contextPath + "/handle/" + item.getHandle(), StringUtils.abbreviate(item.getName(), 47));
+
+                    Collection collection = item.getOwningCollection();
+                    collectionCell.addXref(contextPath + "/handle/" + collection.getHandle(), StringUtils.abbreviate(collection.getName(), 47));
+
+                } catch (SQLException e) {
+                    log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+                    bitstreamCell.addContent(bitstreamID);
+                }
+            }
+            hitsCell.addContent((int) objectCounts[i].getCount());
         }
 
 
