@@ -1,7 +1,6 @@
 package org.dspace.app.report;
 
 
-
 import au.com.bytecode.opencsv.CSVWriter;
 import org.apache.log4j.Logger;
 import org.dspace.core.Context;
@@ -9,16 +8,11 @@ import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
 
-
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.Result;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Exporting Community's in CSV format
@@ -63,25 +57,15 @@ public class CommunityInfo extends HttpServlet
         }
 
         writer.close();
-
-
     }
 
     protected TableRowIterator itemGrowth() throws SQLException {
         Context context = new Context();
 
-        /*
-        String query = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
-                "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item " +
-                "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true	) t1 " +
-                "GROUP BY date_trunc('month', t1.ts) order by yearmo asc;";
-                */
-
         String query = "SELECT community.\"name\", community.community_id, handle.handle, community_item_count.count " +
                 "FROM public.community, public.handle, public.community_item_count " +
                 "WHERE community.community_id = community_item_count.community_id AND handle.resource_id = community.community_id AND handle.resource_type_id = 4 " +
                 "order by community.community_id asc;";
-
 
         TableRowIterator tri = DatabaseManager.query(context, query);
 
