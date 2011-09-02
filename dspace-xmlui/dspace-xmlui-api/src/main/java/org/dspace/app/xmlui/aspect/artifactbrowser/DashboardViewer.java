@@ -407,7 +407,5 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             }
             hitsCell.addContent((int) objectCounts[i].getCount());
         }
-
-
     }
 }
