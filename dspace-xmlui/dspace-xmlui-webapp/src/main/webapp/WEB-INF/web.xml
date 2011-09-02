@@ -253,6 +253,11 @@
 	    <servlet-class>org.dspace.app.statistics.GrowthStatistics</servlet-class>
     </servlet>
 
+    <servlet>
+        <servlet-name>community-info</servlet-name>
+        <servlet-class>org.dspace.app.report.CommunityInfo</servlet-class>
+    </servlet>
+
     <!-- URL space mappings ============================================= -->
 
     <!--
@@ -274,6 +279,11 @@
     <servlet-mapping>
         <servlet-name>growth-statistics</servlet-name>
         <url-pattern>/growth-statistics</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>community-info</servlet-name>
+        <url-pattern>/community-info</url-pattern>
     </servlet-mapping>
 
     <!--
