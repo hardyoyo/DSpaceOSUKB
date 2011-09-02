@@ -254,6 +254,11 @@
     </servlet>
 
     <servlet>
+        <servlet-name>collection-info</servlet-name>
+        <servlet-class>org.dspace.app.report.CollectionInfo</servlet-class>
+    </servlet>
+
+    <servlet>
         <servlet-name>community-info</servlet-name>
         <servlet-class>org.dspace.app.report.CommunityInfo</servlet-class>
     </servlet>
@@ -271,6 +276,9 @@
         <url-pattern>/*</url-pattern>
     </servlet-mapping>
 
+    <!--
+        KB Export Data as CSV Reports
+    -->
     <servlet-mapping>
         <servlet-name>content-statistics</servlet-name>
         <url-pattern>/content-statistics</url-pattern>
@@ -279,6 +287,11 @@
     <servlet-mapping>
         <servlet-name>growth-statistics</servlet-name>
         <url-pattern>/growth-statistics</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>collection-info</servlet-name>
+        <url-pattern>/collection-info</url-pattern>
     </servlet-mapping>
 
     <servlet-mapping>
