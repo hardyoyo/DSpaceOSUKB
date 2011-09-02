@@ -141,13 +141,16 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         }
 
 
+        Division exportLinks = division.addDivision("export-links");
+        exportLinks.setHead("Additional Reports / Exports");
+        exportLinks.addPara("Additional reports or queries that have been frequently run against the KB. Typically these reports are a .csv export of some query. " +
+                "Instead of manually requesting, and then waiting for someone to execute the query, this is a bit of a self-service shortcut.");
 
-
-
-        //MaureenQuery1()
-        //TscheraQuery1()
-
-
+        org.dspace.app.xmlui.wing.element.List links = exportLinks.addList("links");
+        links.addItemXref(contextPath + "/growth-statistics", "Growth - Number of Items added to the Repository (Monthly)");
+        links.addItemXref(contextPath + "/content-statistics",  "Repository Size Statistics (DS-552)");
+        links.addItemXref(contextPath + "/collection-info", "Collection Export - Name, ID, Handle, #Items");
+        links.addItemXref(contextPath + "/community-info", "Community Export - Name, ID, Handle, #Items");
     }
 
     private void queryItemGrowthPerMonth(Division division) throws SQLException, WingException
