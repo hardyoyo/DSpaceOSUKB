@@ -151,6 +151,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         links.addItemXref(contextPath + "/content-statistics",  "Repository Size Statistics (DS-552)");
         links.addItemXref(contextPath + "/collection-info", "Collection Export - Name, ID, Handle, #Items");
         links.addItemXref(contextPath + "/community-info", "Community Export - Name, ID, Handle, #Items");
+        links.addItemXref(contextPath + "/hierarchy-info", "Community Hierarchy - Com, SubCom, SubCom..., Col, #Items");
     }
 
     private void queryItemGrowthPerMonth(Division division) throws SQLException, WingException
