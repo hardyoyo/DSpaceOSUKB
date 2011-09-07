@@ -263,6 +263,11 @@
         <servlet-class>org.dspace.app.report.CommunityInfo</servlet-class>
     </servlet>
 
+    <servlet>
+        <servlet-name>hierarchy-info</servlet-name>
+        <servlet-class>org.dspace.app.report.HierarchyInfo</servlet-class>
+    </servlet>
+
     <!-- URL space mappings ============================================= -->
 
     <!--
@@ -297,6 +302,11 @@
     <servlet-mapping>
         <servlet-name>community-info</servlet-name>
         <url-pattern>/community-info</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>hierarchy-info</servlet-name>
+        <url-pattern>/hierarchy-info</url-pattern>
     </servlet-mapping>
 
     <!--
