@@ -265,7 +265,7 @@
 
     <servlet>
         <servlet-name>hierarchy-info</servlet-name>
-        <servlet-class>org.dspace.app.report.HierarchyInfo</servlet-class>
+        <servlet-class>org.dspace.app.xmlui.aspect.artifactbrowser.HierarchyInfo</servlet-class>
     </servlet>
 
     <!-- URL space mappings ============================================= -->
