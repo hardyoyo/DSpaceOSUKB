@@ -1415,6 +1415,33 @@ public class Collection extends DSpaceObject
 
         return itemcount;
      }
+
+
+
+    //TODO FINISH ME
+    public int countBitstreams(String bundleName) {
+        if(bundleName.length() == 0) {
+            //Not an error, since if bundle is unspecified, you get all bundles available
+        }
+
+        String query = "SELECT count(*) FROM public.collection2item,public.item2bundle,public.bundle2bitstream, public.bitstream,public.bundle" +
+                " WHERE item2bundle.bundle_id = bundle2bitstream.bundle_id" +
+                " AND item2bundle.item_id = collection2item.item_id" +
+                " AND bundle2bitstream.bitstream_id = bitstream.bitstream_id" +
+                " AND bundle.bundle_id = item2bundle.bundle_id" +
+                " AND collection2item.collection_id = " + this.getID();
+
+        if(bundleName.length() > 0) {
+            query = query.concat(" AND bundle.\"name\" = '" + bundleName + "'");
+        }
+
+        return 0;
+
+
+
+
+
+    }
      
     public DSpaceObject getAdminObject(int action) throws SQLException
     {
