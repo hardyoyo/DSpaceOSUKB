@@ -2,10 +2,16 @@ package org.dspace.app.xmlui.aspect.artifactbrowser;
 
 
 import au.com.bytecode.opencsv.CSVWriter;
+import org.apache.log4j.Hierarchy;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
+import org.dspace.statistics.ObjectCount;
+import org.dspace.statistics.SolrLogger;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -70,21 +76,49 @@ public class HierarchyInfo extends HttpServlet
         rowString[Hierarchy.Collection.ordinal()] = collection.getName();
         try {
             rowString[Hierarchy.Items.ordinal()] = String.valueOf(collection.countItems());
+            rowString[Hierarchy.Bitstreams.ordinal()]=String.valueOf(collection.countBitstreams("ORIGINAL"));
 
-            //Any other interesting reports we can get?
-            /* @TODO Why is the stats stuff not available to DSpace-API
-            String childrenOfCollectionQuery = "type:0 AND owningComm:[0 TO 9999999] AND -dns:msnbot-* AND -isBot:true AND time:[2011-08-01T00:00:00.000Z TO 2011-09-01T00:00:00.000Z]";
+
+            String childrenOfCollectionQuery = "owningColl:" + collection.getID();
+            //http://localhost:8080/solr/statistics/select?q=owningColl:1379&facet=true&facet.field=type&rows=0
 
             ObjectCount[] objectCounts = new ObjectCount[0];
             try {
-                objectCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
+                objectCounts = SolrLogger.queryFacetField(childrenOfCollectionQuery, "", "type", 10, true, null);
+                for(ObjectCount facetResult : objectCounts) {
+                    log.info("Value for collection:"+collection.getID() + " is = " + facetResult.getValue() + " and count =" + facetResult.getCount());
+                    if(facetResult.getValue().equals("2")) {
+                        rowString[Hierarchy.ItemViews.ordinal()] = String.valueOf(facetResult.getCount());
+                    } else if(facetResult.getValue().equals("0")) {
+                        rowString[Hierarchy.BitstreamViews.ordinal()] = String.valueOf(facetResult.getCount());
+                    }
+
+
+                    // objectCounts[0].getValue() == 0
+                    // objectCounts[0].getCount() == 10703
+                }
 
             } catch (SolrServerException e) {
-                log.error("Top Downloads query failed.");
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                log.error("Visiting Bit and Item Views query failed:" + e.getMessage());
             }
-            */
 
+
+            // Give me collection views for this collection
+            // ?q=id:941 AND type:3
+            // 0 BITSTREAM
+            // 1
+            // 2 ITEM
+            // 3 COLLECTION
+            // 4 COMMUNITY
+
+            try{
+
+                String queryForThisId = "id:" + collection.getID() + " AND type:3";
+                ObjectCount objectCount=SolrLogger.queryTotal(queryForThisId,"");
+                rowString[Hierarchy.CollectionViews.ordinal()] = String.valueOf(objectCount.getCount());
+            } catch (SolrServerException e) {
+                log.error("visiting Collection Views query failed:" + e.getMessage());
+            }
 
 
         } catch (SQLException e) {
@@ -133,7 +167,11 @@ public class HierarchyInfo extends HttpServlet
         SubCom2,
         SubCom3,
         Collection,
-        Items;
+        CollectionViews,
+        Items,
+        ItemViews,
+        Bitstreams,
+        BitstreamViews;
     }
 
 
