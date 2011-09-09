@@ -1,4 +1,4 @@
-package org.dspace.app.report;
+package org.dspace.app.xmlui.aspect.artifactbrowser;
 
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -132,9 +132,6 @@ public class HierarchyInfo extends HttpServlet
         SubCom1,
         SubCom2,
         SubCom3,
-        SubCom4,
-        SubCom5,
-        SubCom6,
         Collection,
         Items;
     }
