@@ -75,8 +75,8 @@ public class HierarchyInfo extends HttpServlet
     protected void writeCollection(Collection collection, CSVWriter csvWriter, String[] rowString) {
         rowString[Hierarchy.Collection.ordinal()] = collection.getName();
         try {
-            rowString[Hierarchy.Items.ordinal()] = String.valueOf(collection.countItems());
-            rowString[Hierarchy.Bitstreams.ordinal()]=String.valueOf(collection.countBitstreams("ORIGINAL"));
+            rowString[Hierarchy.NumItems.ordinal()] = String.valueOf(collection.countItems());
+            rowString[Hierarchy.NumBitstreams.ordinal()]=String.valueOf(collection.countBitstreams("ORIGINAL"));
 
 
             String childrenOfCollectionQuery = "owningColl:" + collection.getID();
@@ -123,7 +123,7 @@ public class HierarchyInfo extends HttpServlet
 
         } catch (SQLException e) {
             log.error("Error counting number of items for collection: "+collection.getName() + " -- " + collection.getHandle());
-            rowString[Hierarchy.Items.ordinal()] = "Unknown";
+            rowString[Hierarchy.NumItems.ordinal()] = "Unknown";
         }
         csvWriter.writeNext(rowString);
     }
@@ -168,9 +168,9 @@ public class HierarchyInfo extends HttpServlet
         SubCom3,
         Collection,
         CollectionViews,
-        Items,
+        NumItems,
         ItemViews,
-        Bitstreams,
+        NumBitstreams,
         BitstreamViews;
     }
 
