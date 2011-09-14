@@ -1417,30 +1417,65 @@ public class Collection extends DSpaceObject
      }
 
 
-
-    //TODO FINISH ME
+    /**
+     * Determine how many bitstreams are contained within this collection.
+     * @param bundleName (Optional) Specify a bundle name to restrict the search to just those within this bundle
+     * @return Number of bitstreams in this collection
+     */
     public int countBitstreams(String bundleName) {
-        if(bundleName.length() == 0) {
-            //Not an error, since if bundle is unspecified, you get all bundles available
-        }
-
         String query = "SELECT count(*) FROM public.collection2item,public.item2bundle,public.bundle2bitstream, public.bitstream,public.bundle" +
                 " WHERE item2bundle.bundle_id = bundle2bitstream.bundle_id" +
                 " AND item2bundle.item_id = collection2item.item_id" +
                 " AND bundle2bitstream.bitstream_id = bitstream.bitstream_id" +
                 " AND bundle.bundle_id = item2bundle.bundle_id" +
-                " AND collection2item.collection_id = " + this.getID();
+                " AND collection2item.collection_id = ?";
 
-        if(bundleName.length() > 0) {
-            query = query.concat(" AND bundle.\"name\" = '" + bundleName + "'");
+
+        // If bundle is specified, then we need to limit our search to just those within the bundle.
+        if (bundleName.length() > 0) {
+            query = query.concat(" AND bundle.\"name\" = ?");
         }
 
-        return 0;
+        int bitstreamCount = 0;
+        PreparedStatement statement = null;
+        ResultSet rs = null;
 
+        try {
+            statement = ourContext.getDBConnection().prepareStatement(query);
+            statement.setInt(1, getID());
+            log.info("Query: "+query);
+            if(bundleName.length() > 0) {
+                statement.setString(2, bundleName);
+            }
+            log.info("Query2: "+query);
 
+            rs = statement.executeQuery();
+            if (rs != null) {
+                rs.next();
+                bitstreamCount = rs.getInt(1);
+            }
+        } catch (SQLException sqlE) {
+            log.error(sqlE.getMessage());
+        } catch (Exception e) {
+            log.error(e.getMessage());
 
+        } finally
+        {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException sqle) {
+                }
+            }
 
-
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException sqle) {
+                }
+            }
+        }
+        return bitstreamCount;
     }
      
     public DSpaceObject getAdminObject(int action) throws SQLException
