@@ -23,6 +23,7 @@ import org.apache.solr.common.params.MapSolrParams;
 import org.dspace.content.*;
 import org.dspace.content.Collection;
 import org.dspace.core.ConfigurationManager;
+import org.dspace.core.Context;
 import org.dspace.eperson.EPerson;
 import org.dspace.statistics.util.DnsLookup;
 import org.dspace.statistics.util.LocationUtils;
@@ -334,6 +335,7 @@ public class SolrLogger
                 {
                     Item item = bundle.getItems()[j];
                     doc1.addField("owningItem", item.getID());
+                    doc1.addField("bundleName", bundle.getName());
                     storeParents(doc1, item);
                 }
             }
@@ -967,6 +969,43 @@ public class SolrLogger
         } catch (IOException ex)
         {
             log.error(ex.getMessage());
+        }
+    }
+
+    /**
+     * Alter all of the SOLR hits for bitstreams and set the current value for the bitstream's bundle name.
+     */
+    public static void reindexBitstreamHits() {
+
+        // Only call this with bitstreams, since it is not going to type check verify.
+        ResultProcessor processor = new ResultProcessor() {
+            public void process(SolrDocument doc) throws IOException, SolrServerException {
+                doc.removeFields("bundleName");
+                Integer bitstreamID =(Integer) doc.getFieldValue("id");
+                try {
+                    Bitstream bitstream = Bitstream.find(new Context(), bitstreamID);
+                    Bundle[] bundles = bitstream.getBundles();
+                    if(bundles != null & bundles.length>0) {
+                        doc.setField("bundleName", bundles[0].getName());
+                    }
+
+                    SolrInputDocument newDoc = ClientUtils.toSolrInputDocument(doc);
+
+                    deleteSolrDocument(doc);
+                    solr.add(newDoc);
+
+                } catch (SQLException e) {
+                    log.error("Not able to find Bitstream:"+bitstreamID);
+                }
+            }
+        };
+
+        try {
+            processor.execute("type:0");
+
+            solr.commit();
+        } catch (Exception e) {
+            log.error(e.getMessage());
         }
     }
 
