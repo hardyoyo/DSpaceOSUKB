@@ -976,6 +976,13 @@ public class SolrLogger
      * Alter all of the SOLR hits for bitstreams and set the current value for the bitstream's bundle name.
      */
     public static void reindexBitstreamHits() {
+        Context context = null;
+        try {
+            context = new Context();
+        } catch (SQLException e) {
+            log.error("Unable to obtain context:"+e.getMessage());
+        }
+        final Context finalContext = context;
 
         // Only call this with bitstreams, since it is not going to type check verify.
         ResultProcessor processor = new ResultProcessor() {
@@ -983,7 +990,7 @@ public class SolrLogger
                 doc.removeFields("bundleName");
                 Integer bitstreamID =(Integer) doc.getFieldValue("id");
                 try {
-                    Bitstream bitstream = Bitstream.find(new Context(), bitstreamID);
+                    Bitstream bitstream = Bitstream.find(finalContext, bitstreamID);
                     Bundle[] bundles = bitstream.getBundles();
                     if(bundles != null & bundles.length>0) {
                         doc.setField("bundleName", bundles[0].getName());
