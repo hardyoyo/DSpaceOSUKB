@@ -976,6 +976,8 @@ public class SolrLogger
      * Alter all of the SOLR hits for bitstreams and set the current value for the bitstream's bundle name.
      */
     public static void reindexBitstreamHits() {
+        long start = System.currentTimeMillis();
+        System.out.println("Bitstream Reindexing Begin -- Process Started:"+start);
         Context context = null;
         try {
             context = new Context();
@@ -994,6 +996,37 @@ public class SolrLogger
                     Bundle[] bundles = bitstream.getBundles();
                     if(bundles != null & bundles.length>0) {
                         doc.setField("bundleName", bundles[0].getName());
+                    } else {
+                        /* This bitstream is not connected to bundle/item
+                            Possibilities:
+                                * Collection or Community logo
+                                * Bitstream has been removed from Item, and replaced with another version, so we'll try to match
+                         */
+
+                        DSpaceObject parent = bitstream.getParentObject();
+                        if(parent instanceof Collection) {
+                            doc.setField("bundleName", "LOGO-COLLECTION");
+                        } else if(parent instanceof Community) {
+                            doc.setField("bundleName", "LOGO-COMMUNITY");
+                        } else {
+
+                            //Make an attempt to find another version of this bitstream.
+                            Bitstream[] potentialBitstreams = Bitstream.findByName(finalContext, bitstream.getName());
+                            for(Bitstream potentialBitstream: potentialBitstreams) {
+                                if(potentialBitstream.getID() != bitstreamID) {
+                                    // orig was 123, now we're looking at 321
+                                    Bundle[] potentialBundles = potentialBitstream.getBundles();
+                                    if(potentialBundles != null && potentialBundles.length > 0) {
+                                        doc.setField("bundleName", potentialBundles[0].getName());
+                                        //TODO Might also need to reindex everything about this. i.e. owningItem, owningComm ?
+                                        break;
+                                    }
+                                }
+                            }
+                            if(! doc.containsKey("bundleName")) {
+                                log.info("No bundle's for bitstreamID:"+bitstreamID+" bitstream.name:"+bitstream.getName()+ " ---- There were "+potentialBitstreams.length + " matches for this bitstream name.");
+                            }
+                        }
                     }
 
                     SolrInputDocument newDoc = ClientUtils.toSolrInputDocument(doc);
