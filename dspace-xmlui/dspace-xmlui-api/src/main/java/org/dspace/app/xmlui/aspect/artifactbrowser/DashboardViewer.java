@@ -91,7 +91,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         pageMeta.addMetadata("title").addContent("Dashboard");
 
         pageMeta.addTrailLink(contextPath + "/","KB Home");
-        pageMeta.addTrail().addContent("Dashboard");
+        pageMeta.addTrailLink(contextPath + "/dashboard", "Dashboard");
     }
 
     /**
