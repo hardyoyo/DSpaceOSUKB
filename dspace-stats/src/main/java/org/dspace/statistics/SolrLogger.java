@@ -975,7 +975,7 @@ public class SolrLogger
     /**
      * Alter all of the SOLR hits for bitstreams and set the current value for the bitstream's bundle name.
      */
-    public static void reindexBitstreamHits() {
+    public static void reindexBitstreamHits(boolean fullReindex) {
         long start = System.currentTimeMillis();
         System.out.println("Bitstream Reindexing Begin -- Process Started:"+start);
         Context context = null;
@@ -988,7 +988,12 @@ public class SolrLogger
         ResultProcessorReindexBitstreams processor = new ResultProcessorReindexBitstreams(context);
 
         try {
-            processor.execute("type:0");
+            //If we are full-reindexing, then run over all bitstreams, otherwise, just on things without bundleName
+            if(fullReindex) {
+                processor.execute("type:0");
+            } else {
+                processor.execute("type:0 AND -bundleName:[* TO *]");
+            }
 
             solr.commit();
         } catch (Exception e) {
