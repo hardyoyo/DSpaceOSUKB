@@ -143,6 +143,10 @@ public class HierarchyInfo extends HttpServlet
 
     /**
      * The hierarchy line can get dirty, so we need to clean it when we get to a new community.
+     * The shape of the hierarchy line should be:
+     * parent+, collection, stats
+     * Where only parents in a position before the current depth remain untouched, the rest are cleared.
+     * The statistics will get cleared each time.
      * @param hierarchyLine
      * @param depth
      * @return
@@ -152,6 +156,13 @@ public class HierarchyInfo extends HttpServlet
 
         // depth < scrub < collection.ordinal
         while((depth < scrub) && (scrub < Hierarchy.Collection.ordinal())) {
+            hierarchyLine[scrub] = "";
+            scrub++;
+        }
+
+        // Now clear out the stats... everything after collection
+        scrub = Hierarchy.Collection.ordinal()+1;
+        while(scrub < Hierarchy.values().length) {
             hierarchyLine[scrub] = "";
             scrub++;
         }
