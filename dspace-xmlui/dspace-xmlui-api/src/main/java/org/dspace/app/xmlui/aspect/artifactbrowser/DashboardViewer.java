@@ -111,7 +111,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         Item actionSelectItem = actionsList.addItem();
         Radio actionSelect = actionSelectItem.addRadio("report_name");
         actionSelect.setLabel("Choose a Report to View");
-        actionSelect.addOption(false, "itemgrowth", "Total Item Growth");
+        actionSelect.addOption(false, "itemgrowth", "Number of Items in the Repository (Monthly) -- Google Chart");
         actionSelect.addOption(false, "commitems", "Items in Communities");
         actionSelect.addOption(false, "bitstreamVisits", "Bitstream Visits");
         actionSelect.addOption(false, "topDownloadsMonth", "Top Downloads for Month");
@@ -154,6 +154,12 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         links.addItemXref(contextPath + "/hierarchy-info", "Community Hierarchy - Com, SubCom, SubCom..., Col, #Items");
     }
 
+    /**
+     * Adds Google charts visualizer of items in repository. It has a hidden table with the data too.
+     * @param division
+     * @throws SQLException
+     * @throws WingException
+     */
     private void queryItemGrowthPerMonth(Division division) throws SQLException, WingException
     {
         String query = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
@@ -164,9 +170,10 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         List itemStatRows = tri.toList();
 
         division.addDivision("chart_div");
-        Button toggleButton = division.addPara().addButton("items_added_dataset_button", "show_hide_dataset");
-        toggleButton.setValue("Show/Hide Dataset");
-        
+
+        Division descriptionDivision = division.addDivision("description");
+        descriptionDivision.addPara().addXref(contextPath + "/growth-statistics", "Download This Dataset as CSV");
+
         Table itemTable = division.addTable("items_added_monthly", itemStatRows.size(), 3);
         Row headerRow = itemTable.addRow(Row.ROLE_HEADER);
         headerRow.addCell().addContent("Date");

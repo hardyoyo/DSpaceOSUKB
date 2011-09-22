@@ -26,11 +26,4 @@
     }
 
 
-    $('#aspect_artifactbrowser_DashboardViewer_field_items_added_dataset_button').click(function(){
-       $('#aspect_artifactbrowser_DashboardViewer_table_items_added_monthly').toggle('slow', function(){});
-    });
-
-
-
-
 //});
