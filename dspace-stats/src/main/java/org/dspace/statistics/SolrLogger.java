@@ -1025,6 +1025,9 @@ public class SolrLogger
         solr.deleteByQuery("type:" + type + " AND id:" + id + " AND ip:" + ip + " AND time:[" + time + " TO " + time +"]");
     }
 
+    /**
+     * Processor for marking docs as bots
+     */
     private static class ResultProcessorDeleteAddImpl extends ResultProcessor {
 
         public ResultProcessorDeleteAddImpl() {
