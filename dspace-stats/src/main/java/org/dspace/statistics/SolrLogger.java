@@ -873,10 +873,7 @@ public class SolrLogger
         }
 
         // Set the top x of if present
-        if (max != -1)
-        {
-            solrQuery.setFacetLimit(max);
-        }
+        solrQuery.setFacetLimit(max);
 
         // A filter is used instead of a regular query to improve
         // performance and ensure the search result ordering will
