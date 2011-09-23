@@ -147,11 +147,12 @@ public class DashboardViewer extends AbstractDSpaceTransformer
                 "Instead of manually requesting, and then waiting for someone to execute the query, this is a bit of a self-service shortcut.");
 
         org.dspace.app.xmlui.wing.element.List links = exportLinks.addList("links");
-        links.addItemXref(contextPath + "/growth-statistics", "Growth - Number of Items added to the Repository (Monthly)");
-        links.addItemXref(contextPath + "/content-statistics",  "Repository Size Statistics (DS-552)");
-        links.addItemXref(contextPath + "/collection-info", "Collection Export - Name, ID, Handle, #Items");
-        links.addItemXref(contextPath + "/community-info", "Community Export - Name, ID, Handle, #Items");
-        links.addItemXref(contextPath + "/hierarchy-info", "Community Hierarchy - Com, SubCom, SubCom..., Col, #Items");
+        links.addItemXref(contextPath + "/growth-statistics?type=1", "Growth - Number of Items added to the Repository (Monthly)");
+        links.addItemXref(contextPath + "/growth-statistics?type=0", "Growth - Number of Bitstreams added to the Repository (Monthly)");
+        links.addItemXref(contextPath + "/content-statistics",  "Size Totals #(Comms, Coll, Items, Bits, GBs)");
+        links.addItemXref(contextPath + "/collection-info", "Collection List - Name, ID, Handle, #Items");
+        links.addItemXref(contextPath + "/community-info", "Community List - Name, ID, Handle, #Items");
+        links.addItemXref(contextPath + "/hierarchy-info", "Site Hierarchy - Comm > ... > Coll, #Items, #Bits, #Views, #Downloads");
     }
 
     /**
