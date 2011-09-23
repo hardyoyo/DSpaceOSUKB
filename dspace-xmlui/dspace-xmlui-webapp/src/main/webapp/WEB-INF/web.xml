@@ -267,6 +267,11 @@
         <servlet-name>hierarchy-info</servlet-name>
         <servlet-class>org.dspace.app.xmlui.aspect.artifactbrowser.HierarchyInfo</servlet-class>
     </servlet>
+    
+    <servlet>
+        <servlet-name>usage-report</servlet-name>
+        <servlet-class>org.dspace.app.xmlui.aspect.statistics.UsageReport</servlet-class>
+    </servlet>
 
     <!-- URL space mappings ============================================= -->
 
@@ -307,6 +312,11 @@
     <servlet-mapping>
         <servlet-name>hierarchy-info</servlet-name>
         <url-pattern>/hierarchy-info</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>usage-report</servlet-name>
+        <url-pattern>/usage-report</url-pattern>
     </servlet-mapping>
 
     <!--
