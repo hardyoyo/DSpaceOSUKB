@@ -19,6 +19,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MapSolrParams;
 import org.dspace.content.*;
 import org.dspace.content.Collection;
@@ -836,7 +837,7 @@ public class SolrLogger
 
         // System.out.println("QUERY");
         SolrQuery solrQuery = new SolrQuery().setRows(0).setQuery(query)
-                .setFacetMinCount(1);
+                .setFacetMinCount(1).setFacetSort(FacetParams.FACET_SORT_COUNT);
 
         // Set the date facet if present
         if (dateType != null)
