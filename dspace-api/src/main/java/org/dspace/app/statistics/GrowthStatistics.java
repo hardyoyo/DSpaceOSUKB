@@ -34,8 +34,35 @@ public class GrowthStatistics extends HttpServlet
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("text/csv; encoding='UTF-8'");
         response.setStatus(HttpServletResponse.SC_OK);
-        response.setHeader("Content-Disposition", "attachment; filename=growth-sample.csv") ;
         CSVWriter writer = new CSVWriter(response.getWriter());
+
+        TableRowIterator tri;
+
+        //Allow for the content type to be passed in. 0 = BITSTREAM, 1 = ITEM, ...
+        String typeParam = request.getParameter("type");
+        String typeString = null;
+
+        Integer type = null;
+        if(typeParam == null) {
+            type = 1;
+        } else {
+            type = Integer.parseInt(typeParam);
+        }
+        log.info("Got parameter type:"+type);
+
+        switch(type) {
+            case 0:
+                typeString = "bitstream";
+                tri = bitstreamGrowth();
+                break;
+            case 1:
+            default:
+                typeString = "item";
+                tri = itemGrowth();
+        }
+
+        response.setHeader("Content-Disposition", "attachment; filename=growth-"+typeString+".csv");
+
 
         // feed in your array (or convert your data to an array)
         //String[] entries = "first#second#third".split("#");
@@ -43,25 +70,24 @@ public class GrowthStatistics extends HttpServlet
 
         String[] firstRow = new String[3];
         firstRow[0] = "YYYY-MM";
-        firstRow[1] = "countitems";
-        firstRow[2] = "totalitems";
+        firstRow[1] = "count";
+        firstRow[2] = "total"+typeString;
         writer.writeNext(firstRow);
 
-        TableRowIterator tri = null;
-        try {
-            tri = itemGrowth();
 
-            Integer totalItems = 0;
+        try {
+
+            Integer total = 0;
             while(tri.hasNext()) {
                 TableRow row = tri.next();
                 //log.debug(row.toString());
                 String date = row.getStringColumn("yearmo");
-                Long numItems = row.getLongColumn("countitem");
-                totalItems += numItems.intValue();
+                Long count = row.getLongColumn("count");
+                total += count.intValue();
                 String[] rowString = new String[3];
                 rowString[0] = date;
-                rowString[1] = numItems.toString();
-                rowString[2] = totalItems.toString();
+                rowString[1] = count.toString();
+                rowString[2] = total.toString();
 
                 writer.writeNext(rowString);
             }
@@ -74,16 +100,38 @@ public class GrowthStatistics extends HttpServlet
 
     }
 
-    protected TableRowIterator itemGrowth() throws SQLException {
-        Context context = new Context();
-
-        String query = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
+    protected TableRowIterator itemGrowth() {
+        String query = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as count " +
                 "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item " +
                 "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true	) t1 " +
                 "GROUP BY date_trunc('month', t1.ts) order by yearmo asc;";
-        TableRowIterator tri = DatabaseManager.query(context, query);
 
+        TableRowIterator tri = null;
+
+        try {
+            tri = DatabaseManager.query(new Context(), query);
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+        }
         return tri;
+    }
 
+    protected TableRowIterator bitstreamGrowth() {
+        String query = "select to_char(date_trunc('month', t1.ts), 'YYYY-MM') as yearmo, count(*) as count from\n" +
+                "(SELECT to_timestamp(text_value, 'YYYY-MM-DD') as ts \n" +
+                "FROM public.metadatavalue, public.item, public.item2bundle, public.bundle, public.bitstream, public.bundle2bitstream\n" +
+                "WHERE metadatavalue.item_id = item.item_id AND item.item_id = item2bundle.item_id AND bundle.bundle_id = item2bundle.bundle_id AND\n" +
+                "  bundle.bundle_id = bundle2bitstream.bundle_id AND bundle2bitstream.bitstream_id = bitstream.bitstream_id AND\n" +
+                "  metadatavalue.metadata_field_id = 12 AND bundle.\"name\" = 'ORIGINAL' AND item.in_archive = true\n" +
+                ") t1 group by date_trunc('month', t1.ts) order by yearmo asc;";
+
+        TableRowIterator tri = null;
+
+        try {
+            tri = DatabaseManager.query(new Context(), query);
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+        }
+        return tri;
     }
 }
