@@ -147,8 +147,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addVisitsTotal(dso, division);
             addVisitsMonthly(dso, division);
             addTopItems(dso, division);
+            division.addPara().addXref(contextPath + "/usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType="+Constants.ITEM, "CSV of All Items");
+
             addTopBitstreams(dso, division);
-            division.addPara().addXref(contextPath + "/usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType=bitstream", "CSV of All Bitstreams");
+            division.addPara().addXref(contextPath + "/usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType="+Constants.BITSTREAM, "CSV of All Bitstreams");
 
             addBitstreamViews(dso, division);
             addCountryViews(dso, division);
