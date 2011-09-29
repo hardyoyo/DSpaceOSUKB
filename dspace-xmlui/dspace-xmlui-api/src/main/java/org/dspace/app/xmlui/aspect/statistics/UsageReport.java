@@ -31,34 +31,6 @@ import java.sql.SQLException;
 public class UsageReport extends HttpServlet {
     protected static final Logger log = Logger.getLogger(UsageReport.class);
 
-    public String getOwningType() {
-        return owningType;
-    }
-
-    public void setOwningType(String owningType) {
-        this.owningType = owningType;
-    }
-
-    public String getOwningID() {
-        return owningID;
-    }
-
-    public void setOwningID(String owningID) {
-        this.owningID = owningID;
-    }
-
-    public String getReportType() {
-        return reportType;
-    }
-
-    public void setReportType(String reportType) {
-        this.reportType = reportType;
-    }
-
-    private String owningType;
-    private String owningID;
-    private String reportType;
-
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("text/csv; encoding='UTF-8'");
         response.setStatus(HttpServletResponse.SC_OK);
@@ -66,17 +38,10 @@ public class UsageReport extends HttpServlet {
 
         CSVWriter writer = new CSVWriter(response.getWriter());
 
-        // For testing, lets get a report of all bitstreams in communityID=167 -- Enich Parent Community
-        // /usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType=bitstream
-
+        // usage-report?owningType=dso.getType()&owningID=dso.getID()&reportType=Constants.{type}
         Integer owningType = Integer.parseInt(request.getParameter("owningType"));
         Integer owningID =   Integer.parseInt(request.getParameter("owningID"));
         Integer reportType = Integer.parseInt(request.getParameter("reportType"));
-
-
-        //String owningType = "community";
-        //Integer owningID = 1308;
-        //String type = "bitstream";
 
         try {
             Context context = new Context();
@@ -84,14 +49,19 @@ public class UsageReport extends HttpServlet {
             DSpaceObject dso = DSpaceObject.find(context,owningType, owningID);
             addTypeDownloadsForOwningContainer(dso, writer, reportType);
         } catch (SQLException e) {
-            log(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+            log(e.getMessage());
         }
         writer.close();
     }
 
-
+    /**
+     * Get all hits to the specified DSO, that are of type specified.
+     * @param parentDSO The parent container that has children resources that we are reporting
+     * @param writer
+     * @param reportType The type of the children to report on. Either Constants.BITSTREAM or Constants.ITEM
+     * @throws SQLException
+     */
     public void addTypeDownloadsForOwningContainer(DSpaceObject parentDSO, CSVWriter writer, Integer reportType) throws SQLException {
-        // Want to get all bitstreams with hits by this
         // http://localhost:8080/solr/statistics/select?q=type:0+AND+owningComm:167&facet=true&facet.field=id&rows=0&facet.limit=-1&facet.mincount=1&facet.sort=count
 
         String[] headerRow = new String[4];
