@@ -29,7 +29,7 @@ import org.xml.sax.SAXException;
 
 public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
-	private static Logger log = Logger.getLogger(StatisticsTransformer.class);
+    private static Logger log = Logger.getLogger(StatisticsTransformer.class);
 
     private static final Message T_dspace_home = message("xmlui.general.dspace_home");
     private static final Message T_head_title = message("xmlui.statistics.title");
@@ -48,10 +48,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         //Try to find our dspace object
         DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
 
-        pageMeta.addTrailLink(contextPath + "/",T_dspace_home);
+        pageMeta.addTrailLink(contextPath + "/", T_dspace_home);
 
-        if(dso != null)
-        {
+        if (dso != null) {
             HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
         }
         pageMeta.addTrailLink(contextPath + "/handle" + (dso != null && dso.getHandle() != null ? "/" + dso.getHandle() : "/statistics"), T_statistics_trail);
@@ -61,36 +60,32 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
     }
 
     /**
-	 * What to add at the end of the body
-	 */
-	public void addBody(Body body) throws SAXException, WingException,
-			UIException, SQLException, IOException, AuthorizeException {
+     * What to add at the end of the body
+     */
+    public void addBody(Body body) throws SAXException, WingException,
+            UIException, SQLException, IOException, AuthorizeException {
 
         //Try to find our dspace object
         DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
 
-		try
-		{
-			if(dso != null)
-			{
-				renderViewer(body, dso);
-			}
-			else
-			{
-				renderHome(body);
-			}
-			
-		} catch (Throwable t) {
-			log.error(t.getMessage(), t);
-		}
+        try {
+            if (dso != null) {
+                renderViewer(body, dso);
+            } else {
+                renderHome(body);
+            }
 
-	}
+        } catch (Throwable t) {
+            log.error(t.getMessage(), t);
+        }
 
-	public void renderHome(Body body) throws WingException {
-		
-		Division home = body.addDivision("home", "primary repository");
-		Division division = home.addDivision("stats", "secondary stats");
-		division.setHead(T_head_title);
+    }
+
+    public void renderHome(Body body) throws WingException {
+
+        Division home = body.addDivision("home", "primary repository");
+        Division division = home.addDivision("stats", "secondary stats");
+        division.setHead(T_head_title);
         /*
 		try {
 
@@ -111,13 +106,12 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 					e);
 		}
 		*/
-		try {
+        try {
             /** List of the top 10 items for the entire repository **/
-			StatisticsListing statListing = new StatisticsListing(
-					new StatisticsDataVisits());
+            StatisticsListing statListing = new StatisticsListing( new StatisticsDataVisits());
 
-			statListing.setTitle(T_head_visits_total);
-			statListing.setId("list1");
+            statListing.setTitle(T_head_visits_total);
+            statListing.setId("list1");
 
             //Adding a new generator for our top 10 items without a name length delimiter
             DatasetDSpaceObjectGenerator dsoAxis = new DatasetDSpaceObjectGenerator();
@@ -125,45 +119,45 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             statListing.addDatasetGenerator(dsoAxis);
 
             //Render the list as a table
-			addDisplayListing(division, statListing);
+            addDisplayListing(division, statListing);
 
-		} catch (Exception e) {
-			log.error("Error occurred while creating statistics for home page", e);
-		}
+        } catch (Exception e) {
+            log.error("Error occurred while creating statistics for home page", e);
+        }
 
-	}
+    }
 
-	public void renderViewer(Body body, DSpaceObject dso) throws WingException {
+    public void renderViewer(Body body, DSpaceObject dso) throws WingException {
 
-            Division home = body.addDivision(
+        Division home = body.addDivision(
                 Constants.typeText[dso.getType()].toLowerCase() + "-home",
                 "primary repository " + Constants.typeText[dso.getType()].toLowerCase());
 
-            // Build the collection viewer division.
-            Division division = home.addDivision("stats", "secondary stats");
-            division.setHead(T_head_title);
+        // Build the collection viewer division.
+        Division division = home.addDivision("stats", "secondary stats");
+        division.setHead(T_head_title);
 
-            addVisitsTotal(dso, division);
-            addVisitsMonthly(dso, division);
-            addTopItems(dso, division);
-            division.addPara().addXref(contextPath + "/usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType="+Constants.ITEM, "CSV of All Items");
+        addVisitsTotal(dso, division);
+        addVisitsMonthly(dso, division);
+        addTopItems(dso, division);
+        division.addPara().addXref(contextPath + "/usage-report?owningType=" + dso.getType() + "&owningID=" + dso.getID() + "&reportType=" + Constants.ITEM, "CSV of All Items");
 
-            addTopBitstreams(dso, division);
-            division.addPara().addXref(contextPath + "/usage-report?owningType="+dso.getType()+"&owningID="+dso.getID()+"&reportType="+Constants.BITSTREAM, "CSV of All Bitstreams");
+        addTopBitstreams(dso, division);
+        division.addPara().addXref(contextPath + "/usage-report?owningType=" + dso.getType() + "&owningID=" + dso.getID() + "&reportType=" + Constants.BITSTREAM, "CSV of All Bitstreams");
 
-            addBitstreamViews(dso, division);
-            addCountryViews(dso, division);
-            addCityViews(dso, division);
-        }
+        addBitstreamViews(dso, division);
+        addCountryViews(dso, division);
+        addCityViews(dso, division);
+    }
 
-        /**
-         * Provide a list of the top 10 viewed Items if possible
-         * @param dso
-         * @param division
-         */
-        public void addTopItems(DSpaceObject dso, Division division)
-        {
-            if ((dso instanceof org.dspace.content.Collection) || (dso instanceof org.dspace.content.Community)) {
+    /**
+     * Provide a list of the top 10 viewed Items if possible
+     *
+     * @param dso
+     * @param division
+     */
+    public void addTopItems(DSpaceObject dso, Division division) {
+        if ((dso instanceof org.dspace.content.Collection) || (dso instanceof org.dspace.content.Community)) {
             try {
 
                 StatisticsTable statisticsTable = new StatisticsTable(new StatisticsDataVisits(dso));
@@ -183,23 +177,21 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 addDisplayTable(division, statisticsTable);
 
             } catch (Exception e) {
-                log.error(
-                    "Error occurred while creating top-items statistics for dso with ID: "
-                    + dso.getID() + " and type " + dso.getType()
-                    + " and handle: " + dso.getHandle(), e);
+                log.error("Error occurred while creating top-items statistics for dso with ID: " + dso.getID()
+                        + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
             }
 
-            }
         }
+    }
 
-        /**
-         * Provide a list of the top 10 viewed bitstreams if possible
-         * @param dso
-         * @param division
-         */
-        public void addTopBitstreams(DSpaceObject dso, Division division)
-        {
-            if ((dso instanceof org.dspace.content.Collection) || (dso instanceof org.dspace.content.Community)) {
+    /**
+     * Provide a list of the top 10 viewed bitstreams if possible
+     *
+     * @param dso
+     * @param division
+     */
+    public void addTopBitstreams(DSpaceObject dso, Division division) {
+        if ((dso instanceof org.dspace.content.Collection) || (dso instanceof org.dspace.content.Community)) {
             try {
 
                 StatisticsTable statisticsTable = new StatisticsTable(new StatisticsDataVisits(dso));
@@ -219,20 +211,17 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 addDisplayTable(division, statisticsTable);
 
             } catch (Exception e) {
-                log.error(
-                    "Error occured while creating top-bits statistics for dso with ID: "
-                    + dso.getID() + " and type " + dso.getType()
-                    + " and handle: " + dso.getHandle(), e);
+                log.error("Error occured while creating top-bits statistics for dso with ID: " + dso.getID()
+                        + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
             }
 
-            }
         }
+    }
 
-        public void addVisitsTotal(DSpaceObject dso, Division division)
-        {
+    public void addVisitsTotal(DSpaceObject dso, Division division) {
         try {
             StatisticsListing statListing = new StatisticsListing(
-                new StatisticsDataVisits(dso));
+                    new StatisticsDataVisits(dso));
 
             statListing.setTitle(T_head_visits_total);
             statListing.setId("list1");
@@ -244,15 +233,12 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addDisplayListing(division, statListing);
 
         } catch (Exception e) {
-            log.error(
-                "Error occured while creating statistics for dso with ID: "
-                + dso.getID() + " and type " + dso.getType()
-                + " and handle: " + dso.getHandle(), e);
+            log.error("Error occured while creating statistics for dso with ID: " + dso.getID()
+                    + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
     }
-        
-        public void addVisitsMonthly(DSpaceObject dso, Division division)
-        {
+
+    public void addVisitsMonthly(DSpaceObject dso, Division division) {
         try {
 
             StatisticsTable statisticsTable = new StatisticsTable(new StatisticsDataVisits(dso));
@@ -271,46 +257,39 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addDisplayTable(division, statisticsTable);
 
         } catch (Exception e) {
-            log.error(
-                "Error occured while creating statistics for dso with ID: "
-                + dso.getID() + " and type " + dso.getType()
-                + " and handle: " + dso.getHandle(), e);
+            log.error("Error occured while creating statistics for dso with ID: " + dso.getID()
+                    + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
     }
 
-        public void addBitstreamViews(DSpaceObject dso, Division division)
-        {
-            if (dso instanceof org.dspace.content.Item) {
-                //Make sure our item has at least one bitstream
-                org.dspace.content.Item item = (org.dspace.content.Item) dso;
-                try {
-                if(item.hasUploadedFiles()){
-                        StatisticsListing statsList = new StatisticsListing(new StatisticsDataVisits(dso));
+    public void addBitstreamViews(DSpaceObject dso, Division division) {
+        if (dso instanceof org.dspace.content.Item) {
+            //Make sure our item has at least one bitstream
+            org.dspace.content.Item item = (org.dspace.content.Item) dso;
+            try {
+                if (item.hasUploadedFiles()) {
+                    StatisticsListing statsList = new StatisticsListing(new StatisticsDataVisits(dso));
 
-                        statsList.setTitle(T_head_visits_bitstream);
-                        statsList.setId("list-bit");
+                    statsList.setTitle(T_head_visits_bitstream);
+                    statsList.setId("list-bit");
 
-                        DatasetDSpaceObjectGenerator dsoAxis = new DatasetDSpaceObjectGenerator();
-                        dsoAxis.addDsoChild(Constants.BITSTREAM, 10, false, -1);
-                        statsList.addDatasetGenerator(dsoAxis);
+                    DatasetDSpaceObjectGenerator dsoAxis = new DatasetDSpaceObjectGenerator();
+                    dsoAxis.addDsoChild(Constants.BITSTREAM, 10, false, -1);
+                    statsList.addDatasetGenerator(dsoAxis);
 
-                        addDisplayListing(division, statsList);
-                    }
-                } catch (Exception e) {
-                    log.error(
-                        "Error occured while creating statistics for dso with ID: "
-                        + dso.getID() + " and type " + dso.getType()
-                        + " and handle: " + dso.getHandle(), e);
+                    addDisplayListing(division, statsList);
                 }
+            } catch (Exception e) {
+                log.error("Error occured while creating statistics for dso with ID: " + dso.getID()
+                        + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
             }
-
         }
-        
-        public void addCountryViews(DSpaceObject dso, Division division)
-        {
+
+    }
+
+    public void addCountryViews(DSpaceObject dso, Division division) {
         try {
-            StatisticsListing statListing = new StatisticsListing(
-                new StatisticsDataVisits(dso));
+            StatisticsListing statListing = new StatisticsListing(new StatisticsDataVisits(dso));
 
             statListing.setTitle(T_head_visits_countries);
             statListing.setId("list2");
@@ -325,19 +304,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             addDisplayListing(division, statListing);
         } catch (Exception e) {
-            log.error(
-                    "Error occurred while creating statistics for dso with ID: "
-                            + dso.getID() + " and type " + dso.getType()
-                            + " and handle: " + dso.getHandle(), e);
+            log.error("Error occurred while creating statistics for dso with ID: " + dso.getID()
+                    + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
 
     }
 
-        public void addCityViews(DSpaceObject dso, Division division)
-        {
+    public void addCityViews(DSpaceObject dso, Division division) {
         try {
-            StatisticsListing statListing = new StatisticsListing(
-                new StatisticsDataVisits(dso));
+            StatisticsListing statListing = new StatisticsListing(new StatisticsDataVisits(dso));
 
             statListing.setTitle(T_head_visits_cities);
             statListing.setId("list3");
@@ -352,134 +327,125 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             addDisplayListing(division, statListing);
         } catch (Exception e) {
-            log.error(
-                    "Error occurred while creating statistics for dso with ID: "
-                            + dso.getID() + " and type " + dso.getType()
-                            + " and handle: " + dso.getHandle(), e);
+            log.error("Error occurred while creating statistics for dso with ID: " + dso.getID()
+                    + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
     }
 
-	
-	/**
-	 * Adds a table layout to the page
-	 * 
-	 * @param mainDiv
-	 *            the div to add the table to
-	 * @param display
-	 * @throws SAXException
-	 * @throws WingException
-	 * @throws ParseException
-	 * @throws IOException
-	 * @throws SolrServerException
-	 * @throws SQLException
-	 */
-	private void addDisplayTable(Division mainDiv, StatisticsTable display)
-			throws SAXException, WingException, SQLException,
-			SolrServerException, IOException, ParseException {
 
-		String title = display.getTitle();
+    /**
+     * Adds a table layout to the page
+     *
+     * @param mainDiv the div to add the table to
+     * @param display
+     * @throws SAXException
+     * @throws WingException
+     * @throws ParseException
+     * @throws IOException
+     * @throws SolrServerException
+     * @throws SQLException
+     */
+    private void addDisplayTable(Division mainDiv, StatisticsTable display)
+            throws SAXException, WingException, SQLException,
+            SolrServerException, IOException, ParseException {
 
-		Dataset dataset = display.getDataset();
+        String title = display.getTitle();
 
-		if (dataset == null) {
-			/** activate dataset query */
-			dataset = display.getDataset(context);
-		}
+        Dataset dataset = display.getDataset();
 
-		if (dataset != null) {
+        if (dataset == null) {
+            /** activate dataset query */
+            dataset = display.getDataset(context);
+        }
 
-			String[][] matrix = dataset.getMatrixFormatted();
+        if (dataset != null) {
 
-			/** Generate Table */
-			Division wrapper = mainDiv.addDivision("tablewrapper");
-			Table table = wrapper.addTable("list-table", 1, 1,
-					title == null ? "" : "tableWithTitle");
-			if (title != null)
-            {
+            String[][] matrix = dataset.getMatrixFormatted();
+
+            /** Generate Table */
+            Division wrapper = mainDiv.addDivision("tablewrapper");
+            Table table = wrapper.addTable("list-table", 1, 1,
+                    title == null ? "" : "tableWithTitle");
+            if (title != null) {
                 table.setHead(message(title));
             }
 
-			/** Generate Header Row */
-			Row headerRow = table.addRow();
-			headerRow.addCell("spacer", Cell.ROLE_DATA, "labelcell");
+            /** Generate Header Row */
+            Row headerRow = table.addRow();
+            headerRow.addCell("spacer", Cell.ROLE_DATA, "labelcell");
 
-			String[] cLabels = dataset.getColLabels().toArray(new String[0]);
-			for (int row = 0; row < cLabels.length; row++) {
-				Cell cell = headerRow.addCell(0 + "-" + row + "-h", Cell.ROLE_DATA, "labelcell");
-				cell.addContent(cLabels[row]);
-			}
+            String[] cLabels = dataset.getColLabels().toArray(new String[0]);
+            for (int row = 0; row < cLabels.length; row++) {
+                Cell cell = headerRow.addCell(0 + "-" + row + "-h", Cell.ROLE_DATA, "labelcell");
+                cell.addContent(cLabels[row]);
+            }
 
-			/** Generate Table Body */
-			for (int row = 0; row < matrix.length; row++) {
-				Row valListRow = table.addRow();
+            /** Generate Table Body */
+            for (int row = 0; row < matrix.length; row++) {
+                Row valListRow = table.addRow();
 
-				/** Add Row Title */
-				valListRow.addCell("" + row, Cell.ROLE_DATA, "labelcell").
-                                    addXref(dataset.getRowLabelsAttrs().get(row).get("url"), dataset.getRowLabels().get(row));
+                /** Add Row Title */
+                valListRow.addCell("" + row, Cell.ROLE_DATA, "labelcell").
+                        addXref(dataset.getRowLabelsAttrs().get(row).get("url"), dataset.getRowLabels().get(row));
 
-				/** Add Rest of Row */
-				for (int col = 0; col < matrix[row].length; col++) {
-					Cell cell = valListRow.addCell(row + "-" + col,
-							Cell.ROLE_DATA, "datacell");
-					cell.addContent(matrix[row][col]);
-				}
-			}
-		}
+                /** Add Rest of Row */
+                for (int col = 0; col < matrix[row].length; col++) {
+                    Cell cell = valListRow.addCell(row + "-" + col, Cell.ROLE_DATA, "datacell");
+                    cell.addContent(matrix[row][col]);
+                }
+            }
+        }
 
-	}
+    }
 
-	private void addDisplayListing(Division mainDiv, StatisticsListing display)
-			throws SAXException, WingException, SQLException,
-			SolrServerException, IOException, ParseException {
+    private void addDisplayListing(Division mainDiv, StatisticsListing display) throws SAXException, WingException,
+            SQLException, SolrServerException, IOException, ParseException {
 
-		String title = display.getTitle();
+        String title = display.getTitle();
 
-		Dataset dataset = display.getDataset();
+        Dataset dataset = display.getDataset();
 
-		if (dataset == null) {
-			/** activate dataset query */
-			dataset = display.getDataset(context);
-		}
+        if (dataset == null) {
+            /** activate dataset query */
+            dataset = display.getDataset(context);
+        }
 
-		if (dataset != null) {
+        if (dataset != null) {
 
-			String[][] matrix = dataset.getMatrixFormatted();
+            String[][] matrix = dataset.getMatrixFormatted();
 
-			// String[] rLabels = dataset.getRowLabels().toArray(new String[0]);
+            // String[] rLabels = dataset.getRowLabels().toArray(new String[0]);
 
-			Table table = mainDiv.addTable("list-table", matrix.length, 2,
-					title == null ? "" : "tableWithTitle");
-			if (title != null)
-            {
+            Table table = mainDiv.addTable("list-table", matrix.length, 2,
+                    title == null ? "" : "tableWithTitle");
+            if (title != null) {
                 table.setHead(message(title));
             }
 
-			Row headerRow = table.addRow();
+            Row headerRow = table.addRow();
 
-			headerRow.addCell("", Cell.ROLE_DATA, "labelcell");
-			
-			headerRow.addCell("", Cell.ROLE_DATA, "labelcell").addContent(message(T_head_visits_views));
+            headerRow.addCell("", Cell.ROLE_DATA, "labelcell");
 
-			/** Generate Table Body */
-			for (int col = 0; col < matrix[0].length; col++) {
-				Row valListRow = table.addRow();
+            headerRow.addCell("", Cell.ROLE_DATA, "labelcell").addContent(message(T_head_visits_views));
 
-				Cell catCell = valListRow.addCell(col + "1", Cell.ROLE_DATA,
-						"labelcell");
-				catCell.addContent(dataset.getColLabels().get(col));
+            /** Generate Table Body */
+            for (int col = 0; col < matrix[0].length; col++) {
+                Row valListRow = table.addRow();
 
-				Cell valCell = valListRow.addCell(col + "2", Cell.ROLE_DATA,
-						"datacell");
-				valCell.addContent(matrix[0][col]);
+                Cell catCell = valListRow.addCell(col + "1", Cell.ROLE_DATA, "labelcell");
+                catCell.addContent(dataset.getColLabels().get(col));
 
-			}
+                Cell valCell = valListRow.addCell(col + "2", Cell.ROLE_DATA, "datacell");
+                valCell.addContent(matrix[0][col]);
 
-			if (!"".equals(display.getCss())) {
-				List attrlist = mainDiv.addList("divattrs");
-				attrlist.addItem("style", display.getCss());
-			}
+            }
 
-		}
+            if (!"".equals(display.getCss())) {
+                List attrlist = mainDiv.addList("divattrs");
+                attrlist.addItem("style", display.getCss());
+            }
 
-	}
+        }
+
+    }
 }
