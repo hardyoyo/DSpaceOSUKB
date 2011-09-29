@@ -12,6 +12,7 @@ import org.dspace.app.xmlui.wing.element.Division;
 import org.dspace.app.xmlui.wing.element.Row;
 import org.dspace.app.xmlui.wing.element.Table;
 import org.dspace.content.*;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
@@ -95,13 +96,13 @@ public class UsageReport extends HttpServlet {
 
         String[] headerRow = new String[4];
         switch(reportType) {
-            case 0:
+            case Constants.BITSTREAM:
                 headerRow[0] = "bitstreamID";
                 headerRow[1] = "bitstreamName";
                 headerRow[2] = "bundleName";
                 headerRow[3] = "Downloads";
                 break;
-            case 1:
+            case Constants.ITEM:
                 headerRow[0] = "itemID";
                 headerRow[1] = "itemName";
                 headerRow[2] = "handle";
@@ -112,13 +113,13 @@ public class UsageReport extends HttpServlet {
 
         String query = "type:"+reportType;
         switch (parentDSO.getType()) {
-            case 4:
+            case Constants.COMMUNITY:
                 query = query + " AND owningComm:"+parentDSO.getID();
                 break;
-            case 3:
+            case Constants.COLLECTION:
                 query = query + " AND owningColl:"+parentDSO.getID();
                 break;
-            case 1:
+            case Constants.ITEM:
                 query = query + " AND owningItem:"+parentDSO.getID();
                 break;
         }
@@ -137,7 +138,7 @@ public class UsageReport extends HttpServlet {
             String[] row = new String[4];
 
             switch (reportType) {
-                case 0:
+                case Constants.BITSTREAM:
                     Integer bitstreamID = Integer.parseInt(objectCount.getValue());
                     Bitstream bitstream = Bitstream.find(context, bitstreamID);
                     row[0] = bitstreamID.toString();
@@ -145,7 +146,7 @@ public class UsageReport extends HttpServlet {
                     row[2] = (bitstream.getBundles().length>0) ? bitstream.getBundles()[0].getName() : "unknown";
                     row[3] = String.valueOf(objectCount.getCount());
                     break;
-                case 1:
+                case Constants.ITEM:
                     Integer itemID = Integer.parseInt(objectCount.getValue());
                     Item item = Item.find(context, itemID);
                     row[0] = itemID.toString();
