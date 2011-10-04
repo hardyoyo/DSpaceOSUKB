@@ -42,6 +42,8 @@ package org.dspace.app.xmlui.aspect.artifactbrowser;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import org.apache.cocoon.environment.ObjectModelHelper;
@@ -358,8 +360,17 @@ public class DashboardViewer extends AbstractDSpaceTransformer
     }
 
     public void addMonthlyTopDownloads(Division division) throws WingException {
-        String query = "type:0 AND owningComm:[0 TO 9999999] AND -dns:msnbot-* AND -isBot:true AND time:[2011-08-01T00:00:00.000Z TO 2011-09-01T00:00:00.000Z]";
+        // Default to show report for the current month
+        //"2011-08-01T00:00:00.000Z TO 2011-09-01T00:00:00.000Z";
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MONTH, -1);
+        Integer month = calendar.get(Calendar.MONTH);
+        Integer year = calendar.get(Calendar.YEAR);
+        calendar = new GregorianCalendar(year, month, 1);
 
+        String monthRange = year+"-"+month+"-01T00:00:00.000Z TO "+year+"-"+month+"-"+calendar.getActualMaximum(Calendar.DAY_OF_MONTH)+"T23:59:59.999Z";
+        String query = "type:0 AND owningComm:[0 TO 9999999] AND -dns:msnbot-* AND -isBot:true AND time:["+monthRange+"]";
+        log.info("Top Downloads Query: "+query);
         ObjectCount[] objectCounts = new ObjectCount[0];
         try {
             objectCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
@@ -371,7 +382,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
 
         Division downloadsDivision = division.addDivision("top-downloads", "primary");
         downloadsDivision.setHead("Top Bitstream Downloads for Month");
-        downloadsDivision.addPara("The Top 50 Bitstream Downloads for the month of August 2011.");
+        downloadsDivision.addPara("The Top 50 Bitstream Downloads for the month of: "+calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, context.getCurrentLocale())+" "+year+".");
 
 
         // Bitstream  | Bundle | Item Title | Collection Name | Number of Hits |
