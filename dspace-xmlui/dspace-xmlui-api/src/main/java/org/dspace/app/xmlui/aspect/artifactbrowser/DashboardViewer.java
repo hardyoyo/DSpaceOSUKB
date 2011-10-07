@@ -428,15 +428,16 @@ public class DashboardViewer extends AbstractDSpaceTransformer
                     bitstream.getName().length();
                     bitstreamCell.addXref(contextPath + "/bitstream/id/" + bitstreamID + "/" + bitstream.getName(), StringUtils.abbreviate(bitstream.getName(), 50));
 
-                    Bundle bundle = bitstream.getBundles()[0];
-                    bundleCell.addContent(bundle.getName());
+                    Bundle[] bundles = bitstream.getBundles();
+                    if(bundles != null && bundles.length > 0) {
+                        Bundle bundle = bundles[0];
+                        bundleCell.addContent(bundle.getName());
 
-                    org.dspace.content.Item item = bundle.getItems()[0];
-                    itemCell.addXref(contextPath + "/handle/" + item.getHandle(), StringUtils.abbreviate(item.getName(), 47));
-
-                    Collection collection = item.getOwningCollection();
-                    collectionCell.addXref(contextPath + "/handle/" + collection.getHandle(), StringUtils.abbreviate(collection.getName(), 47));
-
+                        org.dspace.content.Item item = bundle.getItems()[0];
+                        itemCell.addXref(contextPath + "/handle/" + item.getHandle(), StringUtils.abbreviate(item.getName(), 47));
+                        Collection collection = item.getOwningCollection();
+                        collectionCell.addXref(contextPath + "/handle/" + collection.getHandle(), StringUtils.abbreviate(collection.getName(), 47));
+                    }
                 } catch (SQLException e) {
                     log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
                     bitstreamCell.addContent(bitstreamID);
