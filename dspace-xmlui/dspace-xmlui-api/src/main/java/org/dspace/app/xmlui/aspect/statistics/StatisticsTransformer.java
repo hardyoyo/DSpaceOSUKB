@@ -142,15 +142,24 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         Division division = home.addDivision("stats", "secondary stats");
         division.setHead(T_head_title);
 
+        // Total Visits
         addVisitsTotal(dso, division);
+
+        // Total Visits per Month
         addVisitsMonthly(dso, division);
+
+        // Top Items
         addTopItems(dso, division);
         division.addPara().addXref(contextPath + "/usage-report?owningType=" + dso.getType() + "&owningID=" + dso.getID() + "&reportType=" + Constants.ITEM, "CSV of All Items");
 
+        // Top Bitstreams
         addTopBitstreams(dso, division);
         division.addPara().addXref(contextPath + "/usage-report?owningType=" + dso.getType() + "&owningID=" + dso.getID() + "&reportType=" + Constants.BITSTREAM, "CSV of All Bitstreams");
 
+        // File Visits (for Items)
         addBitstreamViews(dso, division);
+
+        // Geographic data about hits.
         addCountryViews(dso, division);
         addCityViews(dso, division);
     }
