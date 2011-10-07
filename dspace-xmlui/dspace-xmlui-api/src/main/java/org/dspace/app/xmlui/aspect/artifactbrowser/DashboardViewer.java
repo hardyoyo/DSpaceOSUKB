@@ -360,15 +360,29 @@ public class DashboardViewer extends AbstractDSpaceTransformer
     }
 
     public void addMonthlyTopDownloads(Division division) throws WingException {
-        // Default to show report for the current month
-        //"2011-08-01T00:00:00.000Z TO 2011-09-01T00:00:00.000Z";
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MONTH, -1);
-        Integer month = calendar.get(Calendar.MONTH);
-        Integer year = calendar.get(Calendar.YEAR);
-        calendar = new GregorianCalendar(year, month, 1);
+        Request request = ObjectModelHelper.getRequest(objectModel);
+        String yearMonth = request.getParameter("yearMonth");
+        Calendar calendar;
+        if (StringUtils.isNotEmpty(yearMonth)) {
+            // User Specified A Month   2011-08
+            // Human years are something like 2005, ... same as computer
+            // Human months are 1-12, computer months are 0-11. So we need to decrement input by 1.
+            String[] dateChunk = yearMonth.split("-");
+            Integer yearInput = Integer.valueOf(dateChunk[0]);
+            Integer monthInput = Integer.valueOf(dateChunk[1])-1;
+            calendar = new GregorianCalendar(yearInput, monthInput, 1);
+        } else {
+            // Show Previous Whole Month
+            calendar = Calendar.getInstance();
+            calendar.add(Calendar.MONTH, -1);
+        }
 
-        String monthRange = year+"-"+month+"-01T00:00:00.000Z TO "+year+"-"+month+"-"+calendar.getActualMaximum(Calendar.DAY_OF_MONTH)+"T23:59:59.999Z";
+        Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
+
+        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
+        String monthRange = calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + "01"                                               + "T00:00:00.000Z"
+                 + " TO " + calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+
         String query = "type:0 AND owningComm:[0 TO 9999999] AND -dns:msnbot-* AND -isBot:true AND time:["+monthRange+"]";
         log.info("Top Downloads Query: "+query);
         ObjectCount[] objectCounts = new ObjectCount[0];
@@ -382,7 +396,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
 
         Division downloadsDivision = division.addDivision("top-downloads", "primary");
         downloadsDivision.setHead("Top Bitstream Downloads for Month");
-        downloadsDivision.addPara("The Top 50 Bitstream Downloads for the month of: "+calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, context.getCurrentLocale())+" "+year+".");
+        downloadsDivision.addPara("The Top 50 Bitstream Downloads during the month of "+calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, context.getCurrentLocale())+" "+calendar.get(Calendar.YEAR)+".");
 
 
         // Bitstream  | Bundle | Item Title | Collection Name | Number of Hits |
