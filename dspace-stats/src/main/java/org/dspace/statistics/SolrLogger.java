@@ -993,6 +993,58 @@ public class SolrLogger
         return filterQuery;
 
     }
+
+    public static void forceCommit() {
+        try {
+            solr.commit();
+        } catch (SolrServerException sse)
+        {
+            log.error(sse.getMessage());
+        } catch (IOException ex)
+        {
+            log.error(ex.getMessage());
+        }
+    }
+
+
+
+
+    /**
+     * Method to delete this solr document.
+     * Note: This will queue the doc for deletion, you need to wait for a commit, or autocommit to occur.
+     * Note: This has an accuracy of single doc existing per IP, per resource, per millisecond.
+     *
+     * @param doc A single SOLR document to be deleted
+     */
+    public static void deleteSolrDocument(SolrDocument doc) throws IOException, SolrServerException {
+        Integer type = (Integer) doc.getFieldValue("type");
+        Integer id = (Integer) doc.getFieldValue("id");
+        String ip = (String) doc.getFieldValue("ip");
+        String time = DateFormatUtils.formatUTC((Date)doc.getFieldValue("time"), SolrLogger.DATE_FORMAT_8601);
+
+        //Uniquely remove previous entry. Should be safe to assume only one request to a specified resource by a single user per millisecond.
+        solr.deleteByQuery("type:" + type + " AND id:" + id + " AND ip:" + ip + " AND time:[" + time + " TO " + time +"]");
+    }
+
+    /**
+     * Processor for marking docs as bots
+     */
+    private static class ResultProcessorDeleteAddImpl extends ResultProcessor {
+
+        public ResultProcessorDeleteAddImpl() {
+        }
+
+        public void process(SolrDocument doc) throws IOException, SolrServerException {
+            doc.removeFields("isBot");
+            doc.addField("isBot", true);
+            SolrInputDocument newInput = ClientUtils.toSolrInputDocument(doc);
+
+            deleteSolrDocument(doc);
+
+            solr.add(newInput);
+            log.info("Marked " + doc.getFieldValue("ip") + " as bot");
+        }
+    }
     
     /**
      * Maintenance to keep a SOLR index efficient.
