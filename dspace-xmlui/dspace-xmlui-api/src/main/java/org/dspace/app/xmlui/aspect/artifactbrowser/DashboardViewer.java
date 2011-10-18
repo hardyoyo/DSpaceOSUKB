@@ -453,7 +453,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
                 "  count(*) as count\n" +
                 "FROM \n" +
                 "  public.bitstream, \n" +
-                "  public.item, \n" +                                                                            q
+                "  public.item, \n" +
                 "  public.bundle, \n" +
                 "  public.bundle2bitstream, \n" +
                 "  public.item2bundle, \n" +
