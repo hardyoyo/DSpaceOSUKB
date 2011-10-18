@@ -446,4 +446,29 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             hitsCell.addContent((int) objectCounts[i].getCount());
         }
     }
+
+    public void mimetypeReport(Division division) {
+        String query = "SELECT \n" +
+                "  bitstreamformatregistry.mimetype,\n" +
+                "  count(*) as count\n" +
+                "FROM \n" +
+                "  public.bitstream, \n" +
+                "  public.item, \n" +                                                                            q
+                "  public.bundle, \n" +
+                "  public.bundle2bitstream, \n" +
+                "  public.item2bundle, \n" +
+                "  public.bitstreamformatregistry\n" +
+                "WHERE \n" +
+                "  item.item_id = item2bundle.item_id AND\n" +
+                "  bundle.bundle_id = bundle2bitstream.bundle_id AND\n" +
+                "  bundle2bitstream.bitstream_id = bitstream.bitstream_id AND\n" +
+                "  item2bundle.bundle_id = bundle.bundle_id AND\n" +
+                "  bitstreamformatregistry.bitstream_format_id = bitstream.bitstream_format_id AND\n" +
+                "  bundle.\"name\" = 'ORIGINAL' AND \n" +
+                "  item.in_archive = true\n" +
+                "Group by mimetype\n" +
+                "order by count desc\n" +
+                "\n" +
+                "  ;";
+    }
 }
