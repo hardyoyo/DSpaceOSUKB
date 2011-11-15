@@ -147,6 +147,11 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addItemsInContainer(dso, division);
         }
 
+        // 2 - Number of Files in The Container (monthly and cumulative)
+        if(dso instanceof Collection || dso instanceof Community) {
+            addFilesInContainer(dso, division);
+        }
+
 
 
 
@@ -355,6 +360,54 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             header.addCell().addContent("Month");
             header.addCell().addContent("#Items Added This Month");
             header.addCell().addContent("#Items Cumulative");
+
+            int cumulativeHits = 0;
+            for(TableRow row : tableRowList) {
+                Row htmlRow = table.addRow(Row.ROLE_DATA);
+
+                String yearmo = row.getStringColumn("yearmo");
+                htmlRow.addCell().addContent(yearmo);
+
+                long monthlyHits = row.getLongColumn("countitem");
+                htmlRow.addCell().addContent(""+monthlyHits);
+
+                cumulativeHits += monthlyHits;
+                htmlRow.addCell().addContent(""+cumulativeHits);
+            }
+
+        } catch (SQLException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        } catch (WingException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    public void addFilesInContainer(DSpaceObject dso, Division division) {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            return;
+        }
+
+        String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
+                "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, item2bundle, bundle, bundle2bitstream, " +
+                getTypeAsString(dso) + "2item " +
+                "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND " +
+                    "item2bundle.bundle_id = bundle.bundle_id AND item2bundle.item_id = item.item_id AND bundle.bundle_id = bundle2bitstream.bundle_id AND bundle.\"name\" = 'ORIGINAL' AND "+
+                getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
+                getTypeAsString(dso) + "2item."+getTypeAsString(dso)+"_id = ? " +
+                ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+        try {
+            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
+
+            java.util.List<TableRow> tableRowList = tri.toList();
+
+            Table table = division.addTable("filesInContainer", tableRowList.size()+1, 3);
+            table.setHead("Number of Files in the " + getTypeAsString(dso) );
+
+            Row header = table.addRow(Row.ROLE_HEADER);
+            header.addCell().addContent("Month");
+            header.addCell().addContent("#Files Added During Month");
+            header.addCell().addContent("#Files Cumulative");
 
             int cumulativeHits = 0;
             for(TableRow row : tableRowList) {
