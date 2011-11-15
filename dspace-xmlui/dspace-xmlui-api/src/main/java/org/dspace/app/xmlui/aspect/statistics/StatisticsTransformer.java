@@ -10,6 +10,7 @@ package org.dspace.app.xmlui.aspect.statistics;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -19,11 +20,16 @@ import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.element.*;
+import org.dspace.app.xmlui.wing.element.List;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.Collection;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.statistics.Dataset;
 import org.dspace.statistics.content.*;
+import org.dspace.storage.rdbms.DatabaseManager;
+import org.dspace.storage.rdbms.TableRow;
+import org.dspace.storage.rdbms.TableRowIterator;
 import org.xml.sax.SAXException;
 
 public class StatisticsTransformer extends AbstractDSpaceTransformer {
@@ -141,6 +147,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         // Build the collection viewer division.
         Division division = home.addDivision("stats", "secondary stats");
         division.setHead(T_head_title);
+
+        // 1 - Number of Items in The Collection (monthly and cumulative for the year)
+        addItemsInCollection(dso, division);
+
 
         // Total Visits
         addVisitsTotal(dso, division);
@@ -299,6 +309,48 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             }
         }
 
+    }
+
+    public void addItemsInCollection(DSpaceObject dso, Division division) {
+        log.info("Items in Collections - Start");
+        Collection collection = (Collection) dso;
+
+        String querySpecifyCollection = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
+                "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, collection2item " +
+                "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND collection2item.item_id = item.item_id AND collection2item.collection_id = ? " +
+                ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+        try {
+            TableRowIterator tri = DatabaseManager.query(context, querySpecifyCollection, collection.getID());
+
+            java.util.List<TableRow> tableRowList = tri.toList();
+
+            Table table = division.addTable("itemsInCollection", tableRowList.size()+1, 3);
+            table.setHead("Number of Items in the Collection");
+
+            Row header = table.addRow(Row.ROLE_HEADER);
+            header.addCell().addContent("Month");
+            header.addCell().addContent("#Items Added This Month");
+            header.addCell().addContent("#Items Cumulative");
+
+            int cumulativeHits = 0;
+            for(TableRow row : tableRowList) {
+                Row htmlRow = table.addRow(Row.ROLE_DATA);
+
+                String yearmo = row.getStringColumn("yearmo");
+                htmlRow.addCell().addContent(yearmo);
+
+                long monthlyHits = row.getLongColumn("countitem");
+                htmlRow.addCell().addContent(""+monthlyHits);
+
+                cumulativeHits += monthlyHits;
+                htmlRow.addCell().addContent(""+cumulativeHits);
+            }
+
+        } catch (SQLException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        } catch (WingException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 
     public void addCountryViews(DSpaceObject dso, Division division) {
