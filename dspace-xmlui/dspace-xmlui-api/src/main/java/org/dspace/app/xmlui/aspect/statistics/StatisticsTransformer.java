@@ -10,7 +10,6 @@ package org.dspace.app.xmlui.aspect.statistics;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -23,6 +22,7 @@ import org.dspace.app.xmlui.wing.element.*;
 import org.dspace.app.xmlui.wing.element.List;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
+import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.statistics.Dataset;
@@ -148,8 +148,12 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         Division division = home.addDivision("stats", "secondary stats");
         division.setHead(T_head_title);
 
-        // 1 - Number of Items in The Collection (monthly and cumulative for the year)
-        addItemsInCollection(dso, division);
+        // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
+        if(dso instanceof Collection || dso instanceof Community) {
+            addItemsInContainer(dso, division);
+        }
+
+
 
 
         // Total Visits
@@ -311,21 +315,47 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
     }
 
-    public void addItemsInCollection(DSpaceObject dso, Division division) {
-        log.info("Items in Collections - Start");
-        Collection collection = (Collection) dso;
+    public String getTypeAsString(DSpaceObject dso) {
+        switch (dso.getType()) {
+            case 0:
+                return "bitstream";
+            case 2:
+                return "item";
+            case 3:
+                return "collection";
+            case 4:
+                return "community";
+            default:
+                return "";
 
-        String querySpecifyCollection = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
-                "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, collection2item " +
-                "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND collection2item.item_id = item.item_id AND collection2item.collection_id = ? " +
+        }
+    }
+
+    /**
+     * Only call this on a container object (collection or community).
+     * @param dso
+     * @param division
+     */
+    public void addItemsInContainer(DSpaceObject dso, Division division) {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            return;
+        }
+
+        String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
+                "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, " +
+                getTypeAsString(dso) + "2item " +
+                "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND "+
+                getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
+                getTypeAsString(dso) + "2item."+getTypeAsString(dso)+"_id = ? " +
                 ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
         try {
-            TableRowIterator tri = DatabaseManager.query(context, querySpecifyCollection, collection.getID());
+            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
 
             java.util.List<TableRow> tableRowList = tri.toList();
 
-            Table table = division.addTable("itemsInCollection", tableRowList.size()+1, 3);
-            table.setHead("Number of Items in the Collection");
+            Table table = division.addTable("itemsInContainer", tableRowList.size()+1, 3);
+            table.setHead("Number of Items in the " + getTypeAsString(dso) );
 
             Row header = table.addRow(Row.ROLE_HEADER);
             header.addCell().addContent("Month");
