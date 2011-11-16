@@ -853,6 +853,19 @@ public class SolrLogger
         return response;
     }
 
+    /**
+     *
+     * @param query
+     * @param filterQuery
+     * @param facetField
+     * @param max
+     * @param dateType
+     * @param dateStart Relative number such as -6, or absolute date such as 2011-08-01T00:00:00.000Z
+     * @param dateEnd
+     * @param facetQueries
+     * @return
+     * @throws SolrServerException
+     */
     private static QueryResponse query(String query, String filterQuery,
             String facetField, int max, String dateType, String dateStart,
             String dateEnd, List<String> facetQueries)
@@ -870,17 +883,24 @@ public class SolrLogger
         // Set the date facet if present
         if (dateType != null)
         {
-            solrQuery.setParam("facet.date", "time")
-                    .
+            solrQuery.setParam("facet.date", "time");
+            solrQuery.setParam("facet.date.gap", "+1" + dateType);
+            solrQuery.setFacet(true);
+
+            if(dateStart.startsWith("+") || dateStart.startsWith("-")) {
+                // Use relative dates (i.e. -6 TO +1)
+
+                // EXAMPLE: NOW/MONTH-" + nbMonths + "MONTHS
+                solrQuery.setParam("facet.date.start", "NOW/" + dateType + dateStart + dateType + "S");
+                //@TODO Check to see if having
+
                 // EXAMPLE: NOW/MONTH+1MONTH
-                    setParam("facet.date.end",
-                            "NOW/" + dateType + dateEnd + dateType).setParam(
-                            "facet.date.gap", "+1" + dateType)
-                    .
-                    // EXAMPLE: NOW/MONTH-" + nbMonths + "MONTHS
-                    setParam("facet.date.start",
-                            "NOW/" + dateType + dateStart + dateType + "S")
-                    .setFacet(true);
+                solrQuery.setParam("facet.date.end", "NOW/" + dateType + dateEnd + dateType);
+            } else {
+                // Use real (hard) dates such as: 2011-08-01T00:00:00.000Z
+                solrQuery.setParam("facet.date.start", dateStart);
+                solrQuery.setParam("facet.date.end", dateEnd);
+            }
         }
         if (facetQueries != null)
         {
