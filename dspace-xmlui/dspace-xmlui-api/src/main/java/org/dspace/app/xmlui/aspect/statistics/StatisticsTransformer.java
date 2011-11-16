@@ -10,6 +10,7 @@ package org.dspace.app.xmlui.aspect.statistics;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Calendar;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -26,6 +27,8 @@ import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.statistics.Dataset;
+import org.dspace.statistics.ObjectCount;
+import org.dspace.statistics.SolrLogger;
 import org.dspace.statistics.content.*;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
@@ -152,6 +155,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addFilesInContainer(dso, division);
         }
 
+        // 3 - Number of File Downloads in the container (monthly and cumulative)
+        if(dso instanceof Collection || dso instanceof Community) {
+            addFileDownloadsInContainer(dso, division);
+        }
 
 
 
@@ -430,6 +437,60 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
     }
 
+    public void addFileDownloadsInContainer(DSpaceObject dso, Division division) {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            return;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MONTH, -1);
+        Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
+
+        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
+        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
+        String monthStart = "2008-01-01T00:00:00.000Z";
+        String monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+
+        String query = "type:0 AND -isBot:true AND "
+                + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
+                + dso.getID();
+
+        log.info("addFileDownloadsInContainer Query: "+query);
+        log.info("addFileDownloadsInContainer monthEnd:" + monthEnd);
+
+        try {
+            ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
+
+            Table table = division.addTable("addFileDownloadsInContainer", objectCounts.length+1, 3);
+            table.setHead("Number of File Downloads in the " + getTypeAsString(dso));
+
+            Row headerRow = table.addRow(Row.ROLE_HEADER);
+            headerRow.addCell().addContent("Month");
+            headerRow.addCell().addContent("Monthly Downloads");
+            headerRow.addCell().addContent("Cumulative Total");
+
+            long totalCount = 0;
+            for(ObjectCount facetEntry : objectCounts) {
+                long count = facetEntry.getCount();
+                totalCount += count;
+
+                if(count == 0) {
+                    continue;
+                }
+
+                Row dataRow = table.addRow(Row.ROLE_DATA);
+                dataRow.addCell().addContent(facetEntry.getValue());
+                dataRow.addCell().addContent(String.valueOf(facetEntry.getCount()));
+                dataRow.addCell().addContent(String.valueOf(totalCount));
+            }
+
+        } catch (SolrServerException e) {
+            log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
+        } catch (WingException e) {
+            log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+        }
+    }
     public void addCountryViews(DSpaceObject dso, Division division) {
         try {
             StatisticsListing statListing = new StatisticsListing(new StatisticsDataVisits(dso));
