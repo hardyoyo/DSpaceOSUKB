@@ -50,6 +50,7 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
         <map:transformers>
             <map:transformer name="Navigation" src="org.dspace.app.xmlui.aspect.artifactbrowser.Navigation"/>
             <map:transformer name="Dashboard" src="org.dspace.app.xmlui.aspect.artifactbrowser.DashboardViewer"/>
+            <map:transformer name="ReportGenerator" src="org.dspace.app.xmlui.aspect.artifactbrowser.ReportGenerator"/>
             <map:transformer name="Statistics" src="org.dspace.app.xmlui.aspect.artifactbrowser.StatisticsViewer"/>
         </map:transformers>
 
@@ -82,6 +83,12 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
             <!-- Display statistics -->
             <map:match pattern="dashboard">
                 <map:transform type="Dashboard"/>
+                <map:serialize type="xml"/>
+            </map:match>
+
+            <!-- Display report generator -->
+            <map:match pattern="report-generator">
+                <map:transform type="ReportGenerator"/>
                 <map:serialize type="xml"/>
             </map:match>
 
