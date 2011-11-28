@@ -36,6 +36,7 @@ public class Navigation extends AbstractDSpaceTransformer implements CacheablePr
 
     private static final Message T_statistics_head = message("xmlui.statistics.Navigation.title");
     private static final Message T_statistics_view = message("xmlui.statistics.Navigation.view");
+    private static final Message T_report_generator_view = message("xmlui.reportgenerator.Navigation.view");
 
     public Serializable getKey() {
         //TODO: DO THIS
@@ -70,6 +71,8 @@ public class Navigation extends AbstractDSpaceTransformer implements CacheablePr
         if(dso != null && dso.getHandle() != null){
             statistics.setHead(T_statistics_head);
             statistics.addItemXref(contextPath + "/handle/" + dso.getHandle() + "/statistics", T_statistics_view);
+            statistics.addItemXref(contextPath + "/handle/" + dso.getHandle() +
+                    "/report-generator", T_report_generator_view);
 
         }else{
             // This Navigation is only called either on a DSO related page, or the homepage

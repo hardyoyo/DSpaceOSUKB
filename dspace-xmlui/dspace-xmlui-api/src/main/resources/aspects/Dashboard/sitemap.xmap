@@ -87,9 +87,9 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
             </map:match>
 
             <!-- Display report generator -->
-            <map:match pattern="report-generator">
-                <map:transform type="ReportGenerator"/>
-                <map:serialize type="xml"/>
+            <map:match pattern="handle/*/*/report-generator">
+              <map:transform type="ReportGenerator"/>
+              <map:serialize type="xml"/>
             </map:match>
 
             <!-- Not a URL we care about, so just pass it on. -->
