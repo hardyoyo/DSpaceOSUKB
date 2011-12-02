@@ -48,9 +48,9 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
     <map:components>
 
         <map:transformers>
-            <map:transformer name="Navigation" src="org.dspace.app.xmlui.aspect.artifactbrowser.Navigation"/>
+            <!--<map:transformer name="Navigation" src="org.dspace.app.xmlui.aspect.artifactbrowser.Navigation"/>-->
             <map:transformer name="Dashboard" src="org.dspace.app.xmlui.aspect.artifactbrowser.DashboardViewer"/>
-            <map:transformer name="Statistics" src="org.dspace.app.xmlui.aspect.artifactbrowser.StatisticsViewer"/>
+            <!--<map:transformer name="Statistics" src="org.dspace.app.xmlui.aspect.artifactbrowser.StatisticsViewer"/>-->
         </map:transformers>
 
     </map:components>
@@ -70,14 +70,14 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
                  selected community or collection.
             3) Metadata about the search urls.
             -->
-            <map:transform type="Navigation"/>
+<!--            <map:transform type="Navigation"/>-->
 
 
             <!-- Display statistics -->
-            <map:match pattern="statistics">
+            <!--<map:match pattern="statistics">
                 <map:transform type="Statistics"/>
                 <map:serialize type="xml"/>
-            </map:match>
+            </map:match>-->
 
             <!-- Display statistics -->
             <map:match pattern="dashboard">
