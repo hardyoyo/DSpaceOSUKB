@@ -71,7 +71,7 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
                  selected community or collection.
             3) Metadata about the search urls.
             -->
-            <map:transform type="Navigation"/>
+            <!--<map:transform type="Navigation"/>-->
 
 
             <!-- Display statistics -->
