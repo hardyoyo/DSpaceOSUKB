@@ -65,20 +65,25 @@ import org.apache.log4j.Logger;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
-import org.apache.solr.client.solrj.SolrServerException;
-
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 
+import org.dspace.app.xmlui.utils.HandleUtil;
 import org.dspace.app.xmlui.utils.UIException;
 
 import org.dspace.app.xmlui.wing.element.*;
 
+import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 
 import org.dspace.authorize.AuthorizeException;
 
-import org.dspace.statistics.ObjectCount;
-import org.dspace.statistics.SolrLogger;
+import org.dspace.content.Collection;
+import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
+
+import org.dspace.storage.rdbms.DatabaseManager;
+import org.dspace.storage.rdbms.TableRow;
+import org.dspace.storage.rdbms.TableRowIterator;
 
 import org.xml.sax.SAXException;
 
@@ -112,6 +117,13 @@ public class ReportGenerator extends AbstractDSpaceTransformer
      * Valid values for report_name parameter.
      */
     private static Set<String> VALID_REPORTS;
+    /**
+     * Dspace home
+     */
+    private static final Message T_dspace_home = message("xmlui.general.dspace_home");
+
+    private Collection collection;
+    private String path;
 
     static {
         //Add required fields to the REQUIRED_FIELDS set
@@ -120,7 +132,8 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         ReportGenerator.REQUIRED_FIELDS.add("gaplength");
         //Add valid field values to VALID_REPORTS
         ReportGenerator.VALID_REPORTS = new HashSet<String>();
-        ReportGenerator.VALID_REPORTS.add("some_yearly_thing");
+        ReportGenerator.VALID_REPORTS.add("advanced");
+        ReportGenerator.VALID_REPORTS.add("arl");
         ReportGenerator.VALID_REPORTS.add("basic");
         //Add valid field values to VALID_GAP_LENGTHS
         ReportGenerator.VALID_GAP_LENGTHS = new HashSet<String>();
@@ -135,9 +148,26 @@ public class ReportGenerator extends AbstractDSpaceTransformer
     public void addPageMeta(PageMeta pageMeta) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
         // Set the page title
         pageMeta.addMetadata("title").addContent("Report Generator");
-
-        pageMeta.addTrailLink(contextPath + "/","KB Home");
-        pageMeta.addTrailLink(contextPath + "/report-generator", "Report Generator");
+        pageMeta.addTrailLink(contextPath + "/", T_dspace_home);
+        //TODO: Requires a force refresh to work properly
+        DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
+        if (dso != null) {
+            HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
+            if (dso instanceof Collection) {
+                this.collection = (Collection) dso;
+            } else if (dso instanceof org.dspace.content.Item) {
+                this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
+            } else {
+                pageMeta.addMetadata("title").addContent(" - Invalid Type");
+                log.debug("Attempted to generate report for a handle which is not a collection or an Item.");
+            }
+        } else {
+            pageMeta.addMetadata("title").addContent(" - Invalid Handle");
+            log.error("Accessed page with an unusable handle.");
+        }
+        if (this.collection != null) {
+            pageMeta.addTrailLink(this.getPath(), "Report Generator");
+        }
     }
 
     /**
@@ -147,8 +177,23 @@ public class ReportGenerator extends AbstractDSpaceTransformer
     public void addBody(Body body) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
         Division division = body.addDivision("report-generator", "primary");
         division.setHead("Report Generator");
-        division.addPara("Used to generate reports with an arbitrary date range that can be split yearly or monthly.");
-        Division search = body.addInteractiveDivision("choose-report", contextPath+"/report-generator", Division.METHOD_GET, "primary");
+        division.addPara("Used to generate reports with an arbitrary date range"
+                + " that can be split yearly or monthly.");
+        DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
+        this.collection = null;
+        if (dso != null) {
+            if (dso instanceof Collection) {
+                this.collection = (Collection) dso;
+            } else if (dso instanceof org.dspace.content.Item) {
+                this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
+            }
+        }
+        if (this.collection == null) {
+            division.addPara("You may only generate a report from a collection"
+                    + " or an item. (The specified handle is neither.)");
+            return;
+        }
+        Division search = body.addInteractiveDivision("choose-report", this.getPath(), Division.METHOD_GET, "primary");
         org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
 
         Request request = ObjectModelHelper.getRequest(objectModel);
@@ -163,18 +208,14 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         } catch (Exception e) {
             log.error("Bad Request. Could may not have all required parameters: " + e.getMessage());
         }
+        Division reportDiv = body.addDivision("report report-" + params.get("report_name"));
         if (params != null) {
             //Run the report
-            boolean success = false;
             try {
-                success = this.runReport(params);
+                this.runReport(params, reportDiv);
             } catch (Exception e) {
                 log.error("Failed to run report with given params: " +
                         params.toString() + "\n" + e.getMessage());
-            }
-
-            if (success) {
-                this.displayResults();
             }
         }
 
@@ -189,6 +230,7 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         boolean hasReportName = params.containsKey("report_name");
         for (String rep : ReportGenerator.VALID_REPORTS) {
             String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
+            if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets sepcial treatment
             boolean isDef = false;
             if (hasReportName) {
                 isDef = params.get("report_name").equals(rep);
@@ -285,11 +327,13 @@ public class ReportGenerator extends AbstractDSpaceTransformer
                     fromDate = df.parse(params.get("from"));
                     log.debug("from: " + params.get("from"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(minimumDate, fromDate, null) <= 0;
+                    params.put("from", fromDate.toString());
                 }
                 if (hasTo) {
                     toDate = df.parse(params.get("to"));
                     log.debug("to: " + params.get("to"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(toDate, maximumDate, null) <= 0;
+                    params.put("to", toDate.toString());
                 }
                 if (hasFrom && hasTo) {
                     //Make sure hasFrom <= hasTo
@@ -340,22 +384,25 @@ public class ReportGenerator extends AbstractDSpaceTransformer
      * @return Successfully generated the specified report.
      * @throws Exception
      */
-    private boolean runReport(Map<String,String> params) throws Exception {
+    private boolean runReport(Map<String,String> params, Division division) throws Exception {
         String report = params.get("report_name");
         //TODO: Get data for reports
         if (report.equals("basic")) {
-            String query = "type:0 AND owningComm:[0 TO 9999999]"
-                + " AND -dns:msnbot-* AND -isBot:true"
-                + " AND ";
-            log.info(StringUtils.capitalize(report) + " Report Query: " + query);
-            ObjectCount[] resultCounts;
+            //String query = "type:0 AND owningComm:[0 TO 9999999]"
+                //+ " AND -dns:msnbot-* AND -isBot:true"
+                //+ " AND ";
+            //log.info(StringUtils.capitalize(report) + " Report Query: " + query);
+            //ObjectCount[] resultCounts;
             try {
-                resultCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
-            } catch (SolrServerException e) {
-                log.error(StringUtils.capitalize(report) + " Report Query Failed: \""
-                        + query + "\"\n" + e.getMessage());
+                //resultCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
+                this.addFilesInContainer(division, this.collection, params.get("from"), params.get("to"));
+            } catch (Exception e) {
+                //log.error(StringUtils.capitalize(report) + " Report Query Failed: \""
+                        //+ query + "\"\n" + e.getMessage());
             }
-        } else if (report.equals("")) {
+            
+        } else if (report.equals("advanced")) {
+        } else if (report.equals("arl")) {
         } else {
             throw new Exception("Report name (\"" + report
                     + "\") is not valid.");
@@ -363,7 +410,75 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         return false;
     }
 
-    private void displayResults() {
-        //TODO: Display Results
+    private String getPath() {
+        if (this.path == null) {
+            this.path = contextPath + "/handle/" + this.collection.getHandle() + "/report-generator";
+        }
+        return this.path;
+    }
+
+    public static String getTypeAsString(DSpaceObject dso) {
+        switch (dso.getType()) {
+            case 0:
+                return "bitstream";
+            case 2:
+                return "item";
+            case 3:
+                return "collection";
+            case 4:
+                return "community";
+            default:
+                return "";
+
+        }
+    }
+
+    public void addFilesInContainer(Division division, DSpaceObject dso, String startDate, String endDate) throws Exception {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            throw new Exception("Argument 'dso' is not of type Community or Collection.");
+        }
+        log.info(startDate);
+        log.info(endDate);
+        String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
+            "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, item2bundle, bundle, bundle2bitstream, " +
+            ReportGenerator.getTypeAsString(dso) + "2item " +
+            "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND " +
+            "item2bundle.bundle_id = bundle.bundle_id AND item2bundle.item_id = item.item_id AND bundle.bundle_id = bundle2bitstream.bundle_id AND bundle.\"name\" = 'ORIGINAL' AND "+
+            ReportGenerator.getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
+            ReportGenerator.getTypeAsString(dso) + "2item."+ReportGenerator.getTypeAsString(dso)+"_id = ? " +
+            ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+        try {
+            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
+
+            java.util.List<TableRow> tableRowList = tri.toList();
+
+            Table table = division.addTable("filesInContainer", tableRowList.size()+1, 3);
+            table.setHead("Number of Files in the " + ReportGenerator.getTypeAsString(dso) );
+
+            Row header = table.addRow(Row.ROLE_HEADER);
+            header.addCell().addContent("Month");
+            header.addCell().addContent("#Files Added During Month");
+            header.addCell().addContent("#Files Cumulative");
+
+            int cumulativeHits = 0;
+            for(TableRow row : tableRowList) {
+                Row htmlRow = table.addRow(Row.ROLE_DATA);
+
+                String yearmo = row.getStringColumn("yearmo");
+                htmlRow.addCell().addContent(yearmo);
+
+                long monthlyHits = row.getLongColumn("countitem");
+                htmlRow.addCell().addContent(""+monthlyHits);
+
+                cumulativeHits += monthlyHits;
+                htmlRow.addCell().addContent(""+cumulativeHits);
+            }
+
+        } catch (SQLException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        } catch (WingException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 }
