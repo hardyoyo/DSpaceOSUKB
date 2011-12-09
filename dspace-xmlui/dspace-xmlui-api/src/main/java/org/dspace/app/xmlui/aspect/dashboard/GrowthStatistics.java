@@ -1,24 +1,20 @@
-package org.dspace.app.statistics;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 
 
 import au.com.bytecode.opencsv.CSVWriter;
 import org.apache.log4j.Logger;
+import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.core.Context;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
 
 
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.Result;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Exporting Tchera's stats in CSV format.
@@ -27,7 +23,7 @@ import java.util.List;
  * Time: 11:56 AM
  * To change this template use File | Settings | File Templates.
  */
-public class GrowthStatistics extends HttpServlet
+public class GrowthStatistics extends AbstractDSpaceTransformer
 {
     protected static final Logger log = Logger.getLogger(GrowthStatistics.class);
 

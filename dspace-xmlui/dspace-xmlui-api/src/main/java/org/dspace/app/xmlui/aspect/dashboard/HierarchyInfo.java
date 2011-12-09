@@ -1,17 +1,15 @@
-package org.dspace.app.xmlui.aspect.artifactbrowser;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 
 import au.com.bytecode.opencsv.CSVWriter;
-import org.apache.log4j.Hierarchy;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.content.*;
-import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
 
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -20,7 +18,7 @@ import java.sql.SQLException;
 /**
  * Exporting Community and hierarchy in CSV format
  */
-public class HierarchyInfo extends HttpServlet
+public class HierarchyInfo extends AbstractDSpaceTransformer
 {
     protected static final Logger log = Logger.getLogger(HierarchyInfo.class);
 

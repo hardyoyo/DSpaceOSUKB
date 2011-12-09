@@ -243,35 +243,7 @@
         <load-on-startup>1</load-on-startup>
     </servlet>
 
-    <servlet>
-	    <servlet-name>content-statistics</servlet-name>
-	    <servlet-class>org.dspace.app.statistics.ContentStatistics</servlet-class>
-    </servlet>
 
-    <servlet>
-	    <servlet-name>growth-statistics</servlet-name>
-	    <servlet-class>org.dspace.app.statistics.GrowthStatistics</servlet-class>
-    </servlet>
-
-    <servlet>
-        <servlet-name>collection-info</servlet-name>
-        <servlet-class>org.dspace.app.report.CollectionInfo</servlet-class>
-    </servlet>
-
-    <servlet>
-        <servlet-name>community-info</servlet-name>
-        <servlet-class>org.dspace.app.report.CommunityInfo</servlet-class>
-    </servlet>
-
-    <servlet>
-        <servlet-name>hierarchy-info</servlet-name>
-        <servlet-class>org.dspace.app.xmlui.aspect.artifactbrowser.HierarchyInfo</servlet-class>
-    </servlet>
-    
-    <servlet>
-        <servlet-name>usage-report</servlet-name>
-        <servlet-class>org.dspace.app.xmlui.aspect.statistics.UsageReport</servlet-class>
-    </servlet>
 
     <!-- URL space mappings ============================================= -->
 
@@ -289,35 +261,7 @@
     <!--
         KB Export Data as CSV Reports
     -->
-    <servlet-mapping>
-        <servlet-name>content-statistics</servlet-name>
-        <url-pattern>/content-statistics</url-pattern>
-    </servlet-mapping>
 
-    <servlet-mapping>
-        <servlet-name>growth-statistics</servlet-name>
-        <url-pattern>/growth-statistics</url-pattern>
-    </servlet-mapping>
-
-    <servlet-mapping>
-        <servlet-name>collection-info</servlet-name>
-        <url-pattern>/collection-info</url-pattern>
-    </servlet-mapping>
-
-    <servlet-mapping>
-        <servlet-name>community-info</servlet-name>
-        <url-pattern>/community-info</url-pattern>
-    </servlet-mapping>
-
-    <servlet-mapping>
-        <servlet-name>hierarchy-info</servlet-name>
-        <url-pattern>/hierarchy-info</url-pattern>
-    </servlet-mapping>
-    
-    <servlet-mapping>
-        <servlet-name>usage-report</servlet-name>
-        <url-pattern>/usage-report</url-pattern>
-    </servlet-mapping>
 
     <!--
         Some servlet engines (Tomcat) have defaults which are not overriden
