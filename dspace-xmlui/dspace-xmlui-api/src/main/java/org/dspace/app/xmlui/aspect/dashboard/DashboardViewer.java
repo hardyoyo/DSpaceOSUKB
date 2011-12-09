@@ -38,7 +38,7 @@
  * DAMAGE.
  */
 
-package org.dspace.app.xmlui.aspect.artifactbrowser;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 import java.io.IOException;
 import java.sql.SQLException;

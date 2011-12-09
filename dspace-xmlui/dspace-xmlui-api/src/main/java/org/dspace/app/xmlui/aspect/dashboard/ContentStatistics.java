@@ -33,24 +33,31 @@
  * DAMAGE.
  */
 
-package org.dspace.app.statistics;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.TimeZone;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.avalon.excalibur.pool.Recyclable;
+import org.apache.avalon.framework.parameters.Parameters;
+import org.apache.cocoon.ProcessingException;
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
+import org.apache.cocoon.environment.Response;
+import org.apache.cocoon.reading.AbstractReader;
+import org.apache.cocoon.environment.SourceResolver;
 import org.apache.log4j.Logger;
 
+import org.dspace.app.xmlui.utils.ContextUtil;
 import org.dspace.core.Context;
 import org.dspace.storage.rdbms.*;
+import org.xml.sax.SAXException;
 
 /**
  * Expose some simple measures of the repository's size as an XML document via a
@@ -62,70 +69,74 @@ import org.dspace.storage.rdbms.*;
  * 
  * @author Mark H. Wood
  */
-public class ContentStatistics extends HttpServlet
+public class ContentStatistics extends AbstractReader implements Recyclable
 {
+    /** The Cocoon response */
+    protected Response response;
+
+    /** The Cocoon request */
+    protected Request request;
+
+    /**
+     * How big of a buffer should we use when reading from the bitstream before
+     * writting to the HTTP response?
+     */
+    protected static final int BUFFER_SIZE = 8192;
+
+    protected static final int expires = 60*60*60000;
+
 	private static final TimeZone utcZone = TimeZone.getTimeZone("UTC");
 
 	protected static final Logger log
     	= Logger.getLogger(ContentStatistics.class);
 
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException
+    StringBuilder xmlData = null;
+
+    public void setup(SourceResolver resolver, Map objectModel, String src, Parameters par)
+            throws ProcessingException, SAXException, IOException
     {
-        log.debug("Entering ContentStatistics.doGet");
-        Context dsContext = null;
-        TableRow row;
+        super.setup(resolver, objectModel, src, par);
 
-        // Response header
-        resp.setContentType("text/xml; encoding='UTF-8'");
-        resp.setStatus(HttpServletResponse.SC_OK);
+        try {
+            this.request = ObjectModelHelper.getRequest(objectModel);
+            this.response = ObjectModelHelper.getResponse(objectModel);
+            Context context = ContextUtil.obtainContext(objectModel);
 
-        // Response body
-        PrintWriter responseWriter = resp.getWriter();
-        responseWriter.print("<?xml version='1.0' encoding='UTF-8'?>");
 
-        responseWriter.print("<dspace-repository-statistics date='");
-        log.debug("Ready to write date");
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-        df.setTimeZone(utcZone);
-        SimpleDateFormat tf = new SimpleDateFormat("HHmmss");
-        tf.setTimeZone(utcZone);
-        Date now = new Date();
-        responseWriter.print(df.format(now));
-        responseWriter.print('T');
-        responseWriter.print(tf.format(now));
-        responseWriter.print("Z'>");
-        log.debug("Wrote the date");
+            xmlData = new StringBuilder();
 
-        try
-        {
-            dsContext = new Context();
-            
-            row = DatabaseManager.querySingle(dsContext,
-                    "SELECT count(community_id) AS communities FROM community;");
+            xmlData.append("<?xml version='1.0' encoding='UTF-8'?>");
+
+            xmlData.append("<dspace-repository-statistics date='");
+            log.debug("Ready to write date");
+            SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+            df.setTimeZone(utcZone);
+            SimpleDateFormat tf = new SimpleDateFormat("HHmmss");
+            tf.setTimeZone(utcZone);
+            Date now = new Date();
+            xmlData.append(df.format(now));
+            xmlData.append('T');
+            xmlData.append(tf.format(now));
+            xmlData.append("Z'>");
+            log.debug("Wrote the date");
+
+            TableRow row = DatabaseManager.querySingle(context, "SELECT count(community_id) AS communities FROM community;");
+            if (null != row) {
+                xmlData.append(" <statistic name='communities'>" + row.getLongColumn("communities") + "</statistic>");
+            }
+
+            row = DatabaseManager.querySingle(context, "SELECT count(collection_id) AS collections FROM collection;");
             if (null != row)
-                responseWriter.printf(
-                        " <statistic name='communities'>%d</statistic>",
-                        row.getLongColumn("communities"));
-            
-            row = DatabaseManager.querySingle(dsContext,
-                    "SELECT count(collection_id) AS collections FROM collection;");
-            if (null != row)
-                responseWriter.printf(
-                        " <statistic name='collections'>%d</statistic>",
-                        row.getLongColumn("collections"));
-            
-            row = DatabaseManager.querySingle(dsContext,
-                    "SELECT count(item_id) AS items FROM item WHERE NOT withdrawn;");
-            if (null != row)
-                responseWriter.printf(
-                        " <statistic name='items'>%d</statistic>",
-                        row.getLongColumn("items"));
+                xmlData.append(" <statistic name='collections'>"+row.getLongColumn("collections")+"</statistic>");
+
+            row = DatabaseManager.querySingle(context, "SELECT count(item_id) AS items FROM item WHERE NOT withdrawn;");
+            if (null != row) {
+                xmlData.append(" <statistic name='items'>"+row.getLongColumn("items")+"</statistic>");
+            }
 
             log.debug("Counting, summing bitstreams");
             // Get # bitstreams, and MB
-            row = DatabaseManager.querySingle(dsContext,
+            row = DatabaseManager.querySingle(context,
                     "SELECT count(bitstream_id) AS bitstreams," +
                             " sum(size_bytes)/1048576 AS totalMBytes" +
                             " FROM bitstream" +
@@ -139,16 +150,14 @@ public class ContentStatistics extends HttpServlet
             if (null != row)
             {
                 log.debug("Writing count");
-                responseWriter.printf(" <statistic name='bitstreams'>%d</statistic>",
-                        row.getLongColumn("bitstreams"));
+                xmlData.append(" <statistic name='bitstreams'>"+row.getLongColumn("bitstreams")+"</statistic>");
                 log.debug("Writing total size");
-                responseWriter.printf(" <statistic name='totalMBytes'>%d</statistic>",
-                        row.getLongColumn("totalMBytes"));
+                xmlData.append(" <statistic name='totalMBytes'>"+row.getLongColumn("totalMBytes")+"</statistic>");
                 log.debug("Completed writing count, size");
             }
-            
+
             log.debug("Counting, summing image bitstreams");
-            row = DatabaseManager.querySingle(dsContext,
+            row = DatabaseManager.querySingle(context,
                     "SELECT count(bitstream_id) AS images," +
                     " sum(size_bytes)/1048576 AS imageMBytes" +
                     " FROM bitstream" +
@@ -164,26 +173,38 @@ public class ContentStatistics extends HttpServlet
                     );
             if (null != row)
             {
-                responseWriter.printf(" <statistic name='images'>%d</statistic>",
-                        row.getLongColumn("images"));
-                responseWriter.printf(" <statistic name='imageMBytes'>%d</statistic>",
-                        row.getLongColumn("imageMBytes"));
+                xmlData.append(" <statistic name='images'>"+row.getLongColumn("images")+"</statistic>");
+                xmlData.append(" <statistic name='imageMBytes'>"+row.getLongColumn("imageMBytes")+"</statistic>");
             }
-            
-            dsContext.abort();	// nothing to commit
-        }
-        catch (SQLException e)
-        {
+
+            context.abort();	// nothing to commit
+
+            xmlData.append("</dspace-repository-statistics>");
+            log.debug("Finished report");
+
+        } catch (SQLException e) {
             log.debug("caught SQLException");
-            if (null != dsContext) dsContext.abort();
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    e.getMessage());
+            //if (null != context) context.abort();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
-        responseWriter.print("</dspace-repository-statistics>");
-        log.debug("Finished report");
+
+
     }
 
-    /** HttpServlet implements Serializable for some strange reason */
-    private static final long serialVersionUID = -98582768658080267L;
+    public void generate() throws IOException, SAXException, ProcessingException {
+        response.setContentType("text/xml; encoding='UTF-8'");
+        response.setStatus(HttpServletResponse.SC_OK);
+
+        out.write(xmlData.toString().getBytes("UTF-8"));
+        out.flush();
+        out.close();
+
+    }
+
+    public void recycle() {
+        this.response = null;
+        this.request = null;
+    }
+
 }

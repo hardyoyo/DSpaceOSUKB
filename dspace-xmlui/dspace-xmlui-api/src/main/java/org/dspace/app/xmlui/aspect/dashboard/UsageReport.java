@@ -1,24 +1,15 @@
-package org.dspace.app.xmlui.aspect.statistics;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 import au.com.bytecode.opencsv.CSVWriter;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.params.FacetParams;
-import org.dspace.app.xmlui.wing.WingException;
-import org.dspace.app.xmlui.wing.element.Cell;
-import org.dspace.app.xmlui.wing.element.Division;
-import org.dspace.app.xmlui.wing.element.Row;
-import org.dspace.app.xmlui.wing.element.Table;
+import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.content.*;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
 
-import javax.management.ObjectName;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -28,7 +19,7 @@ import java.sql.SQLException;
  * Provides usage report of specified container, and specified type.
  * You'll probably get something like monthly downloads of bitstreams for a specified collectionID.
  */
-public class UsageReport extends HttpServlet {
+public class UsageReport extends AbstractDSpaceTransformer {
     protected static final Logger log = Logger.getLogger(UsageReport.class);
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -49,7 +40,7 @@ public class UsageReport extends HttpServlet {
             DSpaceObject dso = DSpaceObject.find(context,owningType, owningID);
             addTypeDownloadsForOwningContainer(dso, writer, reportType);
         } catch (SQLException e) {
-            log(e.getMessage());
+            log.error(e.getMessage());
         }
         writer.close();
     }

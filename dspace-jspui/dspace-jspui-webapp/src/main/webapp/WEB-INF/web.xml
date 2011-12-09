@@ -468,11 +468,6 @@
       <servlet-class>org.dspace.app.webui.servlet.AuthorityChooseServlet</servlet-class>
   </servlet>
   
-  <servlet>
-      <servlet-name>content-statistics</servlet-name>
-      <servlet-class>org.dspace.app.statistics.ContentStatistics</servlet-class>
-  </servlet>
-
   <!-- shibbolized dspace -->
   <servlet>
     <servlet-name>shibboleth-login</servlet-name>
@@ -757,10 +752,6 @@
       <url-pattern>/choices/*</url-pattern>
   </servlet-mapping>
 
-  <servlet-mapping>
-    <servlet-name>content-statistics</servlet-name>
-    <url-pattern>/content-statistics</url-pattern>
-  </servlet-mapping>
 
   <!-- Icon MIME type -->
   <mime-mapping>
