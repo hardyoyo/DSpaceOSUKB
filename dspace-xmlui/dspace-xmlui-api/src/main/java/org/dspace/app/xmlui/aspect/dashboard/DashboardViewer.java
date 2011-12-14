@@ -391,7 +391,7 @@ public class DashboardViewer extends AbstractDSpaceTransformer
 
         } catch (SolrServerException e) {
             log.error("Top Downloads query failed.");
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
         }
 
         Division downloadsDivision = division.addDivision("top-downloads", "primary");
