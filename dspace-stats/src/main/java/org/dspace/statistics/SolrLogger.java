@@ -712,6 +712,7 @@ public class SolrLogger
      *            will be given)
      * @param dateType
      *            the type to be used (example: DAY, MONTH, YEAR)
+     *            Should be valid for: facet.date.gap
      * @param dateStart
      *            the start date Format:(-3, -2, ..) the date is calculated
      *            relatively on today
@@ -729,8 +730,7 @@ public class SolrLogger
             String filterQuery, int max, String dateType, String dateStart,
             String dateEnd, boolean showTotal) throws SolrServerException
     {
-        QueryResponse queryResponse = query(query, filterQuery, null, max,
-                dateType, dateStart, dateEnd, null);
+        QueryResponse queryResponse = query(query, filterQuery, null, max, dateType, dateStart, dateEnd, null);
         if (queryResponse == null)
         {
             return new ObjectCount[0];
@@ -739,8 +739,8 @@ public class SolrLogger
         FacetField dateFacet = queryResponse.getFacetDate("time");
         // TODO: check if this cannot crash I checked it, it crashed!!!
         // Create an array for our result
-        ObjectCount[] result = new ObjectCount[dateFacet.getValueCount()
-                + (showTotal ? 1 : 0)];
+
+        ObjectCount[] result = new ObjectCount[dateFacet.getValueCount() + (showTotal ? 1 : 0)];
         // Run over our datefacet & store all the values
         for (int i = 0; i < dateFacet.getValues().size(); i++)
         {
