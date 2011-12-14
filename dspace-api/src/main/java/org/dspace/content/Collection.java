@@ -355,6 +355,37 @@ public class Collection extends DSpaceObject
     }
 
     /**
+     *
+     * @return year,count a
+     * @throws SQLException
+     */
+    public TableRowIterator getItemsAvailablePerYear() throws SQLException {
+        String query = "SELECT \n" +
+                "  EXTRACT(YEAR FROM to_date(text_value, 'YYYY')) as year, cast(count(*) as varchar(10)) as count\n" +
+                "FROM \n" +
+                "  public.collection2item, \n" +
+                "  public.item, \n" +
+                "  public.metadatavalue, \n" +
+                "  public.metadatafieldregistry\n" +
+                "WHERE \n" +
+                "  collection2item.collection_id = ? AND\n" +
+                "  collection2item.item_id = item.item_id AND\n" +
+                "  metadatavalue.item_id = item.item_id AND\n" +
+                "  metadatafieldregistry.metadata_field_id = metadatavalue.metadata_field_id AND\n" +
+                "  item.in_archive = true AND \n" +
+                "  metadatafieldregistry.element = 'date' AND \n" +
+                "  metadatafieldregistry.qualifier = 'available'\n" +
+                "group by to_date(text_value, 'YYYY') order by to_date(text_value, 'YYYY') asc;";
+
+        TableRowIterator rows = DatabaseManager.query(ourContext, query, this.getID());
+        // 2007, 50
+        // 2008, 98
+        // ...
+
+        return rows;
+    }
+
+    /**
      * Get all the items in this collection. The order is indeterminate.
      * 
      * @return an iterator over the items in the collection.

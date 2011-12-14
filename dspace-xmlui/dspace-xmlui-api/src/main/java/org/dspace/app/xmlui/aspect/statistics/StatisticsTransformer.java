@@ -188,6 +188,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         // Geographic data about hits.
         addCountryViews(dso, division);
         addCityViews(dso, division);
+
+        if(dso instanceof Collection) {
+            addGrowthItemsPerYear(dso, division);
+        }
     }
 
     /**
@@ -497,6 +501,36 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
         }
     }
+    public void addGrowthItemsPerYear(DSpaceObject dso, Division division) {
+        Collection collection = (Collection) dso;
+        try {
+            TableRowIterator yearCountIterator = collection.getItemsAvailablePerYear();
+            java.util.List<TableRow> yearCountList = yearCountIterator.toList();
+            Table table = division.addTable("YearCounts", yearCountList.size(), 2);
+            Row headerRow = table.addRow(Row.ROLE_HEADER);
+            headerRow.addCell().addContent("Year");
+            headerRow.addCell().addContent("Count");
+            //add cumulative
+
+            for(TableRow row : yearCountList) {
+                Row dataRow = table.addRow(Row.ROLE_DATA);
+
+                Double year =  row.getDoubleColumn("year");
+                dataRow.addCellContent(year.toString());
+
+                String countString = row.getStringColumn("count");
+                dataRow.addCellContent(countString);
+            }
+
+        } catch (SQLException e) {
+            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        } catch (WingException e) {
+            log.error(e.getMessage());
+        }
+
+
+    }
+
     public void addCountryViews(DSpaceObject dso, Division division) {
         try {
             StatisticsListing statListing = new StatisticsListing(new StatisticsDataVisits(dso));
