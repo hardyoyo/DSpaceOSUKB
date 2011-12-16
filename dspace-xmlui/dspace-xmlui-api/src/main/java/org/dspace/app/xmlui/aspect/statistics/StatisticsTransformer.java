@@ -172,8 +172,26 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             addUniqueVisitorsToContainer(dso, division);
         }
 
+        // 5 - Visits to the Collection by Type of Domain (i.e. .com. .net. .org. .edu. .gov.)
+        //@TODO Cannot search solr with a leading wildcard *.com., so need to add a reversed field to index .com.google.bot.12345
+        Division visitsToDomain = division.addDivision("visits-by-domain");
+        visitsToDomain.setHead("Visits to the Collection by type of domain");
+        visitsToDomain.addPara("Not Yet Implemented! Need to change the data type of DNS to either reverse the field, or tokenize where dots are delimiter.");
 
 
+        // 6 Visits to the collection by Geography
+        addCountryViews(dso, division);
+
+
+
+        // 6++IDEA: Map of the world hits
+
+
+        //
+        // Default DSpace Standard Stats Queries Below
+        //
+
+        /*
         // Total Visits
         addVisitsTotal(dso, division);
 
@@ -189,15 +207,14 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         division.addPara().addXref(contextPath + "/usage-report?owningType=" + dso.getType() + "&owningID=" + dso.getID() + "&reportType=" + Constants.BITSTREAM, "CSV of All Bitstreams");
 
         // File Visits (for Items)
-        addBitstreamViews(dso, division);
+        addBitstreamViewsToItem(dso, division);
 
-        // Geographic data about hits.
-        addCountryViews(dso, division);
-        addCityViews(dso, division);
+
 
         if(dso instanceof Collection) {
             addGrowthItemsPerYear(dso, division);
         }
+        */
     }
 
     /**
@@ -312,7 +329,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
     }
 
-    public void addBitstreamViews(DSpaceObject dso, Division division) {
+    public void addBitstreamViewsToItem(DSpaceObject dso, Division division) {
         if (dso instanceof org.dspace.content.Item) {
             //Make sure our item has at least one bitstream
             org.dspace.content.Item item = (org.dspace.content.Item) dso;
@@ -586,6 +603,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             TableRowIterator yearCountIterator = collection.getItemsAvailablePerYear();
             java.util.List<TableRow> yearCountList = yearCountIterator.toList();
             Table table = division.addTable("YearCounts", yearCountList.size(), 2);
+            table.setHead("Item Growth Per Year");
             Row headerRow = table.addRow(Row.ROLE_HEADER);
             headerRow.addCell().addContent("Year");
             headerRow.addCell().addContent("Count");
@@ -632,6 +650,79 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
 
     }
+
+    public void addCountryViewsMonthlyToContainer(DSpaceObject dso, Division division) {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            return;
+        }
+
+        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
+        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
+        try {
+            GregorianCalendar startCalendar = new GregorianCalendar();
+            startCalendar.set(2008, Calendar.JANUARY, 1, 0, 0, 0);
+
+            Calendar endCalendar = Calendar.getInstance();
+            endCalendar.add(Calendar.MONTH, -1);
+
+            GregorianCalendar copyStartCalendar = new GregorianCalendar();
+            copyStartCalendar.set(2008, Calendar.JANUARY, 1, 0, 0, 0);
+
+            int monthsGap = 0;
+            while(copyStartCalendar.before(endCalendar)) {
+                monthsGap++;
+                copyStartCalendar.add(Calendar.MONTH, 1);
+            }
+
+            Table table = division.addTable("addGeorgraphyVisitorsToContainer", monthsGap, 3);
+            table.setHead("Number of Geography Visitors to the " + getTypeAsString(dso));
+
+            Row headerRow = table.addRow(Row.ROLE_HEADER);
+            headerRow.addCell().addContent("Month");
+            headerRow.addCell().addContent("Monthly Unique Visitors");
+
+            while(startCalendar.before(endCalendar)) {
+                Integer humanMonthNumber = startCalendar.get(Calendar.MONTH)+1;
+
+                String monthStart = startCalendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + startCalendar.getActualMinimum(Calendar.DAY_OF_MONTH)   + "T00:00:00.000Z";
+                String monthEnd =  startCalendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + startCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+
+                String query = "type:0 AND -isBot:true AND time:[" + monthStart + " TO " + monthEnd + "]"
+                        + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
+                        + dso.getID();
+
+                log.info("addUniqueVisitorsToContainer Query: "+query);
+                log.info("addUniqueVisitorsToContainer monthEnd:" + monthEnd);
+
+
+
+                ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "", "ip", -1, true, null);
+                //ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
+
+                Row dataRow = table.addRow(Row.ROLE_DATA);
+
+                if(objectCounts != null && objectCounts.length > 0) {
+                    ObjectCount lastEntry = objectCounts[objectCounts.length-1];
+                    dataRow.addCell().addContent(monthStart);
+                    dataRow.addCell().addContent(String.valueOf(lastEntry.getCount()));
+                } else {
+                    dataRow.addCell().addContent(monthStart);
+                    dataRow.addCell().addContent(0);
+                }
+
+                //Then Increment the lower month
+                startCalendar.add(Calendar.MONTH, 1);
+            }
+
+        } catch (SolrServerException e) {
+            log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
+        } catch (WingException e) {
+            log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+        }
+
+    }
+
 
     public void addCityViews(DSpaceObject dso, Division division) {
         try {
