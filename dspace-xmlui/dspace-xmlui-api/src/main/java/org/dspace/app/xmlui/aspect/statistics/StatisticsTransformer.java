@@ -394,7 +394,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
-            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Items added to Container");
+            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Items Added to the "+getTypeAsString(dso));
             //displayAsTableRows(division, tableRowList, "Number of Items in the Container");
             
             
@@ -546,7 +546,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
 
-            displayAsTableRows(division, tableRowList, "Number of Files in the "+getTypeAsString(dso));
+            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Files in the "+getTypeAsString(dso));
+            //displayAsTableRows(division, tableRowList, "Number of Files in the "+getTypeAsString(dso));
 
         } catch (SQLException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
