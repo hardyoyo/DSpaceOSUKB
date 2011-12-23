@@ -394,132 +394,136 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
-            String yearmoStart = tableRowList.get(0).getStringColumn("yearmo");
-            Integer yearStart = Integer.valueOf(yearmoStart.split("-")[0]);
-            String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn("yearmo");
-            Integer yearLast = Integer.valueOf(yearmoLast.split("-")[0]);
-            int numberOfYears = yearLast-yearStart;
+            displayAsGrid(division, tableRowList, "yearmo", "countitem");
+            //displayAsTableRows(division, tableRowList);
             
-            Table gridTable = division.addTable("itemsInContainer-grid", numberOfYears+1, 14);
-            gridTable.setHead("Number of Items - Grid");
-            Row gridHeader = gridTable.addRow(Row.ROLE_HEADER);
-            gridHeader.addCell().addContent("Year");
-            gridHeader.addCell().addContent("JAN");
-            gridHeader.addCell().addContent("FEB");
-            gridHeader.addCell().addContent("MAR");
-            gridHeader.addCell().addContent("APR");
-            gridHeader.addCell().addContent("MAY");
-            gridHeader.addCell().addContent("JUN");
-            gridHeader.addCell().addContent("JUL");
-            gridHeader.addCell().addContent("AUG");
-            gridHeader.addCell().addContent("SEP");
-            gridHeader.addCell().addContent("OCT");
-            gridHeader.addCell().addContent("NOV");
-            gridHeader.addCell().addContent("DEC");
-            gridHeader.addCell().addContent("Total YR");
-            
-            ArrayList<Row> yearlyRows = new ArrayList<Row>();
-            for(int yearIndex = 0; yearIndex <= numberOfYears; yearIndex++) {
-                Row gridRow = gridTable.addRow(Row.ROLE_DATA);
-                gridRow.addCell(Row.ROLE_HEADER).addContent(yearStart+yearIndex);
-                yearlyRows.add(gridRow);
-            }
-            
-            Integer latestYear=0;
-            Long yearCumulative=0L;
-            Integer latestMonth=0;
-            for(TableRow row: tableRowList) {
-                String yearmo = row.getStringColumn("yearmo");
-                long monthlyHits = row.getLongColumn("countitem");
-                String[] yearMonthSplit = yearmo.split("-");
-                Integer currentYear = Integer.parseInt(yearMonthSplit[0]);
-                Integer currentMonth = Integer.parseInt(yearMonthSplit[1]);
-                              
-                Row thisYearRow = yearlyRows.get(currentYear - yearStart);
-                Cell thisYearMonthCell = null;
-                
-                if (latestYear.equals(currentYear))
-                {
-                    while(latestMonth < currentMonth)
-                    {
-                        thisYearMonthCell = thisYearRow.addCell();
-                        latestMonth++;
-                    }
-                } else {
-                    //latestYear and latestMonth are invalid references, so, this year is fresh.
-                    // Try to write cumulative to final cell of previous year
-                    if(currentYear > yearStart) {
-                        Row lastYearRow = yearlyRows.get(currentYear - yearStart -1);
-                        Cell cumulativeCell = null;
-                        while(latestMonth <= 12) {
-                            cumulativeCell = lastYearRow.addCell();
-                            latestMonth++;
-                        }
-                        cumulativeCell.addContent(yearCumulative+"");
-                        yearCumulative=0L;
-                    }
-
-                    latestMonth = 0;
-                    while(latestMonth < currentMonth)
-                    {
-                        thisYearMonthCell = thisYearRow.addCell();
-                        latestMonth++;
-                    }
-
-                }
-
-                thisYearMonthCell.addContent(monthlyHits+"");
-                yearCumulative += monthlyHits;
-
-                latestYear = currentYear;
-                latestMonth = currentMonth;
-            }
-
-
-            //After all is said and done, we need to fill in the final cumulative for the final year.
-            // Try to write cumulative to final cell of previous year
-            Row finalYearRow = yearlyRows.get(yearlyRows.size()-1);
-            Cell cumulativeCell = null;
-            while(latestMonth <= 12) {
-                cumulativeCell = finalYearRow.addCell();
-                latestMonth++;
-            }
-            cumulativeCell.addContent(yearCumulative+"");
-            yearCumulative=0L;
-
-
-
-
             
 
-            //Can't re-use tableRowList
-            /*
-            Table table = division.addTable("itemsInContainer", tableRowList.size()+1, 3);
-            table.setHead("Number of Items in the " + getTypeAsString(dso) );
-
-            Row header = table.addRow(Row.ROLE_HEADER);
-            header.addCell().addContent("Month");
-            header.addCell().addContent("#Items Added This Month");
-            header.addCell().addContent("#Items Cumulative");
-
-            int cumulativeHits = 0;
-            for(TableRow row : tableRowList) {
-                Row htmlRow = table.addRow(Row.ROLE_DATA);
-
-                String yearmo = row.getStringColumn("yearmo");
-                htmlRow.addCell().addContent(yearmo);
-
-                long monthlyHits = row.getLongColumn("countitem");
-                htmlRow.addCell().addContent(""+monthlyHits);
-
-                cumulativeHits += monthlyHits;
-                htmlRow.addCell().addContent(""+cumulativeHits);
-            } */
 
         } catch (SQLException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
         } catch (WingException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+    
+    public void displayAsGrid(Division division, java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn) throws WingException {
+        String yearmoStart = tableRowList.get(0).getStringColumn(dateColumn);
+        Integer yearStart = Integer.valueOf(yearmoStart.split("-")[0]);
+        String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn(valueColumn);
+        Integer yearLast = Integer.valueOf(yearmoLast.split("-")[0]);
+        int numberOfYears = yearLast-yearStart;
+
+        Table gridTable = division.addTable("itemsInContainer-grid", numberOfYears+1, 14);
+        gridTable.setHead("Number of Items - Grid");
+        Row gridHeader = gridTable.addRow(Row.ROLE_HEADER);
+        gridHeader.addCell().addContent("Year");
+        gridHeader.addCell().addContent("JAN");
+        gridHeader.addCell().addContent("FEB");
+        gridHeader.addCell().addContent("MAR");
+        gridHeader.addCell().addContent("APR");
+        gridHeader.addCell().addContent("MAY");
+        gridHeader.addCell().addContent("JUN");
+        gridHeader.addCell().addContent("JUL");
+        gridHeader.addCell().addContent("AUG");
+        gridHeader.addCell().addContent("SEP");
+        gridHeader.addCell().addContent("OCT");
+        gridHeader.addCell().addContent("NOV");
+        gridHeader.addCell().addContent("DEC");
+        gridHeader.addCell().addContent("Total YR");
+
+        ArrayList<Row> yearlyRows = new ArrayList<Row>();
+        for(int yearIndex = 0; yearIndex <= numberOfYears; yearIndex++) {
+            Row gridRow = gridTable.addRow(Row.ROLE_DATA);
+            gridRow.addCell(Row.ROLE_HEADER).addContent(yearStart+yearIndex);
+            yearlyRows.add(gridRow);
+        }
+
+        Integer latestYear=0;
+        Long yearCumulative=0L;
+        Integer latestMonth=0;
+        for(TableRow row: tableRowList) {
+            String yearmo = row.getStringColumn(dateColumn);
+            long monthlyHits = row.getLongColumn(valueColumn);
+            String[] yearMonthSplit = yearmo.split("-");
+            Integer currentYear = Integer.parseInt(yearMonthSplit[0]);
+            Integer currentMonth = Integer.parseInt(yearMonthSplit[1]);
+
+            Row thisYearRow = yearlyRows.get(currentYear - yearStart);
+            Cell thisYearMonthCell = null;
+
+            if (latestYear.equals(currentYear))
+            {
+                while(latestMonth < currentMonth)
+                {
+                    thisYearMonthCell = thisYearRow.addCell();
+                    latestMonth++;
+                }
+            } else {
+                //latestYear and latestMonth are invalid references, so, this year is fresh.
+                // Try to write cumulative to final cell of previous year
+                if(currentYear > yearStart) {
+                    Row lastYearRow = yearlyRows.get(currentYear - yearStart -1);
+                    Cell cumulativeCell = null;
+                    while(latestMonth <= 12) {
+                        cumulativeCell = lastYearRow.addCell();
+                        latestMonth++;
+                    }
+                    cumulativeCell.addContent(yearCumulative+"");
+                    yearCumulative=0L;
+                }
+
+                latestMonth = 0;
+                while(latestMonth < currentMonth)
+                {
+                    thisYearMonthCell = thisYearRow.addCell();
+                    latestMonth++;
+                }
+
+            }
+
+            thisYearMonthCell.addContent(monthlyHits+"");
+            yearCumulative += monthlyHits;
+
+            latestYear = currentYear;
+            latestMonth = currentMonth;
+        }
+
+
+        //After all is said and done, we need to fill in the final cumulative for the final year.
+        // Try to write cumulative to final cell of previous year
+        Row finalYearRow = yearlyRows.get(yearlyRows.size()-1);
+        Cell cumulativeCell = null;
+        while(latestMonth <= 12) {
+            cumulativeCell = finalYearRow.addCell();
+            latestMonth++;
+        }
+        cumulativeCell.addContent(yearCumulative+"");
+        yearCumulative=0L;
+
+    }
+    
+    public void displayAsTableRows(Division division, java.util.List<TableRow> tableRowList) throws WingException {
+        Table table = division.addTable("itemsInContainer", tableRowList.size()+1, 3);
+        table.setHead("Number of Items in the Container");
+
+        Row header = table.addRow(Row.ROLE_HEADER);
+        header.addCell().addContent("Month");
+        header.addCell().addContent("#Items Added This Month");
+        header.addCell().addContent("#Items Cumulative");
+
+        int cumulativeHits = 0;
+        for(TableRow row : tableRowList) {
+            Row htmlRow = table.addRow(Row.ROLE_DATA);
+
+            String yearmo = row.getStringColumn("yearmo");
+            htmlRow.addCell().addContent(yearmo);
+
+            long monthlyHits = row.getLongColumn("countitem");
+            htmlRow.addCell().addContent(""+monthlyHits);
+
+            cumulativeHits += monthlyHits;
+            htmlRow.addCell().addContent(""+cumulativeHits);
         }
     }
 
