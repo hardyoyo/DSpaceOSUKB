@@ -394,8 +394,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
-            displayAsGrid(division, tableRowList, "yearmo", "countitem");
-            //displayAsTableRows(division, tableRowList);
+            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Items added to Container");
+            //displayAsTableRows(division, tableRowList, "Number of Items in the Container");
             
             
 
@@ -407,15 +407,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
     }
     
-    public void displayAsGrid(Division division, java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn) throws WingException {
+    public void displayAsGrid(Division division, java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn, String header) throws WingException {
         String yearmoStart = tableRowList.get(0).getStringColumn(dateColumn);
         Integer yearStart = Integer.valueOf(yearmoStart.split("-")[0]);
-        String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn(valueColumn);
+        String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn(dateColumn);
         Integer yearLast = Integer.valueOf(yearmoLast.split("-")[0]);
         int numberOfYears = yearLast-yearStart;
 
         Table gridTable = division.addTable("itemsInContainer-grid", numberOfYears+1, 14);
-        gridTable.setHead("Number of Items - Grid");
+        gridTable.setHead(header);
         Row gridHeader = gridTable.addRow(Row.ROLE_HEADER);
         gridHeader.addCell().addContent("Year");
         gridHeader.addCell().addContent("JAN");
@@ -503,14 +503,14 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
     }
     
-    public void displayAsTableRows(Division division, java.util.List<TableRow> tableRowList) throws WingException {
+    public void displayAsTableRows(Division division, java.util.List<TableRow> tableRowList, String title) throws WingException {
         Table table = division.addTable("itemsInContainer", tableRowList.size()+1, 3);
-        table.setHead("Number of Items in the Container");
+        table.setHead(title);
 
         Row header = table.addRow(Row.ROLE_HEADER);
         header.addCell().addContent("Month");
-        header.addCell().addContent("#Items Added This Month");
-        header.addCell().addContent("#Items Cumulative");
+        header.addCell().addContent("Added During Month");
+        header.addCell().addContent("Total Cumulative");
 
         int cumulativeHits = 0;
         for(TableRow row : tableRowList) {
@@ -546,27 +546,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
 
-            Table table = division.addTable("filesInContainer", tableRowList.size()+1, 3);
-            table.setHead("Number of Files in the " + getTypeAsString(dso) );
-
-            Row header = table.addRow(Row.ROLE_HEADER);
-            header.addCell().addContent("Month");
-            header.addCell().addContent("#Files Added During Month");
-            header.addCell().addContent("#Files Cumulative");
-
-            int cumulativeHits = 0;
-            for(TableRow row : tableRowList) {
-                Row htmlRow = table.addRow(Row.ROLE_DATA);
-
-                String yearmo = row.getStringColumn("yearmo");
-                htmlRow.addCell().addContent(yearmo);
-
-                long monthlyHits = row.getLongColumn("countitem");
-                htmlRow.addCell().addContent(""+monthlyHits);
-
-                cumulativeHits += monthlyHits;
-                htmlRow.addCell().addContent(""+cumulativeHits);
-            }
+            displayAsTableRows(division, tableRowList, "Number of Files in the "+getTypeAsString(dso));
 
         } catch (SQLException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
