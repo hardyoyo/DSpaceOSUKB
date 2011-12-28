@@ -10,9 +10,8 @@ package org.dspace.app.xmlui.aspect.statistics;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -394,12 +393,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
-            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Items Added to the "+getTypeAsString(dso));
-            //displayAsTableRows(division, tableRowList, "Number of Items in the Container");
+            Integer[][] monthlyDataGrid = convertTableRowListToIntegerGrid(tableRowList, "yearmo", "countitem");
+            displayAsGrid(division, monthlyDataGrid, "Number of Items Added to the "+getTypeAsString(dso));
             
-            
-
-
         } catch (SQLException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
         } catch (WingException e) {
@@ -407,11 +403,56 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
     }
     
-    public void displayAsGrid(Division division, java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn, String header) throws WingException {
+    public Integer[][] convertTableRowListToIntegerGrid(java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn) {
         String yearmoStart = tableRowList.get(0).getStringColumn(dateColumn);
         Integer yearStart = Integer.valueOf(yearmoStart.split("-")[0]);
         String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn(dateColumn);
         Integer yearLast = Integer.valueOf(yearmoLast.split("-")[0]);
+        //                    distinctBetween(2011, 2005)  = 7
+        int distinctNumberOfYears = yearLast-yearStart+1;
+        
+        /**
+         * monthlyDataGrid will hold all the years down, and the year number, as well as monthly values, plus total across.
+         */
+        Integer[][] monthlyDataGrid = new Integer[distinctNumberOfYears][14];
+        for(int yearIndex = 0; yearIndex < distinctNumberOfYears; yearIndex++) {
+            monthlyDataGrid[yearIndex][0] = yearStart+yearIndex;
+            for(int dataColumnIndex = 1; dataColumnIndex < 14; dataColumnIndex++) {
+                monthlyDataGrid[yearIndex][dataColumnIndex] = 0;
+            }
+        }
+
+
+
+        for(TableRow monthRow: tableRowList) {
+            String yearmo = monthRow.getStringColumn(dateColumn);
+
+            String[] yearMonthSplit = yearmo.split("-");
+            Integer currentYear = Integer.parseInt(yearMonthSplit[0]);
+            Integer currentMonth = Integer.parseInt(yearMonthSplit[1]);
+
+            long monthlyHits = monthRow.getLongColumn(valueColumn);
+
+            monthlyDataGrid[currentYear-yearStart][currentMonth] = (int) monthlyHits;
+        }
+
+        // Fill first column with year name. And, fill in last column with cumulative annual total.
+        for(int yearIndex = 0; yearIndex < distinctNumberOfYears; yearIndex++) {
+            Integer yearCumulative=0;
+            for(int monthIndex = 1; monthIndex <= 12; monthIndex++) {
+                log.error(monthlyDataGrid[yearIndex][monthIndex]+" - Y:"+yearIndex+" - M:"+monthIndex);
+                yearCumulative += monthlyDataGrid[yearIndex][monthIndex];
+            }
+
+            monthlyDataGrid[yearIndex][13] = yearCumulative;
+        }
+        return monthlyDataGrid;
+
+    }
+    
+    public void displayAsGrid(Division division, Integer[][] monthlyDataGrid, String header) throws WingException {
+        Integer yearStart = monthlyDataGrid[0][0];
+        Integer yearLast = monthlyDataGrid[monthlyDataGrid.length-1][0];
         int numberOfYears = yearLast-yearStart;
 
         Table gridTable = division.addTable("itemsInContainer-grid", numberOfYears+1, 14);
@@ -432,75 +473,13 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         gridHeader.addCell().addContent("DEC");
         gridHeader.addCell().addContent("Total YR");
 
-        ArrayList<Row> yearlyRows = new ArrayList<Row>();
-        for(int yearIndex = 0; yearIndex <= numberOfYears; yearIndex++) {
-            Row gridRow = gridTable.addRow(Row.ROLE_DATA);
-            gridRow.addCell(Row.ROLE_HEADER).addContent(yearStart+yearIndex);
-            yearlyRows.add(gridRow);
-        }
-
-        Integer latestYear=0;
-        Long yearCumulative=0L;
-        Integer latestMonth=0;
-        for(TableRow row: tableRowList) {
-            String yearmo = row.getStringColumn(dateColumn);
-            long monthlyHits = row.getLongColumn(valueColumn);
-            String[] yearMonthSplit = yearmo.split("-");
-            Integer currentYear = Integer.parseInt(yearMonthSplit[0]);
-            Integer currentMonth = Integer.parseInt(yearMonthSplit[1]);
-
-            Row thisYearRow = yearlyRows.get(currentYear - yearStart);
-            Cell thisYearMonthCell = null;
-
-            if (latestYear.equals(currentYear))
-            {
-                while(latestMonth < currentMonth)
-                {
-                    thisYearMonthCell = thisYearRow.addCell();
-                    latestMonth++;
-                }
-            } else {
-                //latestYear and latestMonth are invalid references, so, this year is fresh.
-                // Try to write cumulative to final cell of previous year
-                if(currentYear > yearStart) {
-                    Row lastYearRow = yearlyRows.get(currentYear - yearStart -1);
-                    Cell cumulativeCell = null;
-                    while(latestMonth <= 12) {
-                        cumulativeCell = lastYearRow.addCell();
-                        latestMonth++;
-                    }
-                    cumulativeCell.addContent(yearCumulative+"");
-                    yearCumulative=0L;
-                }
-
-                latestMonth = 0;
-                while(latestMonth < currentMonth)
-                {
-                    thisYearMonthCell = thisYearRow.addCell();
-                    latestMonth++;
-                }
-
+        for(int yearIndex=0; yearIndex < monthlyDataGrid.length; yearIndex++) {
+            Row yearRow = gridTable.addRow();
+            yearRow.addCell(Cell.ROLE_HEADER).addContent(monthlyDataGrid[yearIndex][0]);
+            for(int yearContentIndex = 1; yearContentIndex<14; yearContentIndex++) {
+                yearRow.addCell().addContent(monthlyDataGrid[yearIndex][yearContentIndex]);
             }
-
-            thisYearMonthCell.addContent(monthlyHits+"");
-            yearCumulative += monthlyHits;
-
-            latestYear = currentYear;
-            latestMonth = currentMonth;
         }
-
-
-        //After all is said and done, we need to fill in the final cumulative for the final year.
-        // Try to write cumulative to final cell of previous year
-        Row finalYearRow = yearlyRows.get(yearlyRows.size()-1);
-        Cell cumulativeCell = null;
-        while(latestMonth <= 12) {
-            cumulativeCell = finalYearRow.addCell();
-            latestMonth++;
-        }
-        cumulativeCell.addContent(yearCumulative+"");
-        yearCumulative=0L;
-
     }
     
     public void displayAsTableRows(Division division, java.util.List<TableRow> tableRowList, String title) throws WingException {
@@ -546,7 +525,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             java.util.List<TableRow> tableRowList = tri.toList();
 
-            displayAsGrid(division, tableRowList, "yearmo", "countitem", "Number of Files in the "+getTypeAsString(dso));
+            Integer[][] monthlyDataGrid = convertTableRowListToIntegerGrid(tableRowList, "yearmo", "countitem");
+            
+            displayAsGrid(division, monthlyDataGrid, "Number of Files in the "+getTypeAsString(dso));
             //displayAsTableRows(division, tableRowList, "Number of Files in the "+getTypeAsString(dso));
 
         } catch (SQLException e) {
@@ -580,7 +561,25 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
         try {
             ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
+            
+            
 
+            java.util.List<String[]> valuesPerMonth = new ArrayList<String[]>();
+            for(ObjectCount entry : objectCounts) {
+                //January 2008
+                String[] monthtextYear = entry.getValue().split(" ");
+
+                try {
+                    Date date = new SimpleDateFormat("MMM", Locale.getDefault()).parse(monthtextYear[0]);
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(date);
+                    valuesPerMonth.add(new String[]{monthtextYear[1]+"-"+cal.get(Calendar.MONTH), entry.getCount()+""});
+
+                } catch (ParseException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+            }
+            
             Table table = division.addTable("addFileDownloadsInContainer", objectCounts.length+1, 3);
             table.setHead("Number of File Downloads in the " + getTypeAsString(dso));
 
@@ -588,6 +587,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             headerRow.addCell().addContent("Month");
             headerRow.addCell().addContent("Monthly Downloads");
             headerRow.addCell().addContent("Cumulative Total");
+
 
             long totalCount = 0;
             for(ObjectCount facetEntry : objectCounts) {
