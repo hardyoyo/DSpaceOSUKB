@@ -440,7 +440,6 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         for(int yearIndex = 0; yearIndex < distinctNumberOfYears; yearIndex++) {
             Integer yearCumulative=0;
             for(int monthIndex = 1; monthIndex <= 12; monthIndex++) {
-                log.error(monthlyDataGrid[yearIndex][monthIndex]+" - Y:"+yearIndex+" - M:"+monthIndex);
                 yearCumulative += monthlyDataGrid[yearIndex][monthIndex];
             }
 
@@ -448,6 +447,58 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
         return monthlyDataGrid;
 
+    }
+    
+    public Integer[][] convertObjectCountsToIntegerGrid(ObjectCount[] objectCounts) throws ParseException{
+    
+        Calendar calendar = Calendar.getInstance();
+        //Input Date Format ==  December 2011
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+
+        Date date;
+
+        date = dateFormat.parse(objectCounts[0].getValue());
+        calendar.setTime(date);
+        Integer yearStart = calendar.get(Calendar.YEAR);
+
+        date = dateFormat.parse(objectCounts[objectCounts.length-1].getValue());
+        calendar.setTime(date);
+        Integer yearLast = calendar.get(Calendar.YEAR);
+
+        int distinctNumberOfYears = yearLast-yearStart+1;
+
+        /**
+         * monthlyDataGrid will hold all the years down, and the year number, as well as monthly values, plus total across.
+         */
+        Integer[][] monthlyDataGrid = new Integer[distinctNumberOfYears][14];
+        
+        //Initialize the dataGrid with yearName and blanks
+        for(int yearIndex = 0; yearIndex < distinctNumberOfYears; yearIndex++) {
+            monthlyDataGrid[yearIndex][0] = yearStart+yearIndex;
+            for(int dataColumnIndex = 1; dataColumnIndex < 14; dataColumnIndex++) {
+                monthlyDataGrid[yearIndex][dataColumnIndex] = 0;
+            }
+        }
+
+        //Fill in monthly values
+        for(ObjectCount objectCountMonth: objectCounts) {
+            date = dateFormat.parse(objectCountMonth.getValue());
+            calendar.setTime(date);
+
+            long monthlyHits = objectCountMonth.getCount();
+            monthlyDataGrid[calendar.get(Calendar.YEAR)-yearStart][calendar.get(Calendar.MONTH)+1] = (int) monthlyHits;
+        }
+
+        // Fill in last column with cumulative annual total.
+        for(int yearIndex = 0; yearIndex < distinctNumberOfYears; yearIndex++) {
+            Integer yearCumulative=0;
+            for(int monthIndex = 1; monthIndex <= 12; monthIndex++) {
+                yearCumulative += monthlyDataGrid[yearIndex][monthIndex];
+            }
+
+            monthlyDataGrid[yearIndex][13] = yearCumulative;
+        }
+        return monthlyDataGrid;
     }
     
     public void displayAsGrid(Division division, Integer[][] monthlyDataGrid, String header) throws WingException {
@@ -561,53 +612,16 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
         try {
             ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
-            
-            
 
-            java.util.List<String[]> valuesPerMonth = new ArrayList<String[]>();
-            for(ObjectCount entry : objectCounts) {
-                //January 2008
-                String[] monthtextYear = entry.getValue().split(" ");
-
-                try {
-                    Date date = new SimpleDateFormat("MMM", Locale.getDefault()).parse(monthtextYear[0]);
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTime(date);
-                    valuesPerMonth.add(new String[]{monthtextYear[1]+"-"+cal.get(Calendar.MONTH), entry.getCount()+""});
-
-                } catch (ParseException e) {
-                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                }
-            }
-            
-            Table table = division.addTable("addFileDownloadsInContainer", objectCounts.length+1, 3);
-            table.setHead("Number of File Downloads in the " + getTypeAsString(dso));
-
-            Row headerRow = table.addRow(Row.ROLE_HEADER);
-            headerRow.addCell().addContent("Month");
-            headerRow.addCell().addContent("Monthly Downloads");
-            headerRow.addCell().addContent("Cumulative Total");
-
-
-            long totalCount = 0;
-            for(ObjectCount facetEntry : objectCounts) {
-                long count = facetEntry.getCount();
-                totalCount += count;
-
-                if(count == 0) {
-                    continue;
-                }
-
-                Row dataRow = table.addRow(Row.ROLE_DATA);
-                dataRow.addCell().addContent(facetEntry.getValue());
-                dataRow.addCell().addContent(String.valueOf(facetEntry.getCount()));
-                dataRow.addCell().addContent(String.valueOf(totalCount));
-            }
+            Integer[][] monthlyDataGrid = convertObjectCountsToIntegerGrid(objectCounts);
+            displayAsGrid(division, monthlyDataGrid, "Number of File Downloads in the " + getTypeAsString(dso));
 
         } catch (SolrServerException e) {
             log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
         } catch (WingException e) {
             log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+        } catch (ParseException e) {
+            log.error(e.getMessage());
         }
     }
 
