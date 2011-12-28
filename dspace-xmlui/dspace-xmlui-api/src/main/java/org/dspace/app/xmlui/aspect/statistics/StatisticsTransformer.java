@@ -448,12 +448,24 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         return monthlyDataGrid;
 
     }
+
+    /**
+     * Standard conversion of input date, where input is "Month Year", i.e. "December 2011", i.e. "MMMM yyyy".
+     * If you need a different date format, then use the other method.
+     * @param objectCounts
+     * @return
+     * @throws ParseException
+     */
+    public Integer[][] convertObjectCountsToIntegerGrid(ObjectCount[] objectCounts) throws ParseException {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+        return convertObjectCountsToIntegerGrid(objectCounts, dateFormat);
+    }
     
-    public Integer[][] convertObjectCountsToIntegerGrid(ObjectCount[] objectCounts) throws ParseException{
+    public Integer[][] convertObjectCountsToIntegerGrid(ObjectCount[] objectCounts, SimpleDateFormat dateFormat) throws ParseException{
     
         Calendar calendar = Calendar.getInstance();
-        //Input Date Format ==  December 2011
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+
+
 
         Date date;
 
@@ -640,21 +652,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             Calendar endCalendar = Calendar.getInstance();
             endCalendar.add(Calendar.MONTH, -1);
 
-            GregorianCalendar copyStartCalendar = new GregorianCalendar();
-            copyStartCalendar.set(2008, Calendar.JANUARY, 1, 0, 0, 0);
-
-            int monthsGap = 0;
-            while(copyStartCalendar.before(endCalendar)) {
-                monthsGap++;
-                copyStartCalendar.add(Calendar.MONTH, 1);
-            }
-
-            Table table = division.addTable("addUniqueVisitorsToContainer", monthsGap, 3);
-            table.setHead("Number of Unique Visitors to the " + getTypeAsString(dso));
-
-            Row headerRow = table.addRow(Row.ROLE_HEADER);
-            headerRow.addCell().addContent("Month");
-            headerRow.addCell().addContent("Monthly Unique Visitors");
+            ArrayList<ObjectCount> objectCountArrayList = new ArrayList<ObjectCount>();
 
             while(startCalendar.before(endCalendar)) {
                 Integer humanMonthNumber = startCalendar.get(Calendar.MONTH)+1;
@@ -669,30 +667,29 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 log.info("addUniqueVisitorsToContainer Query: "+query);
                 log.info("addUniqueVisitorsToContainer monthEnd:" + monthEnd);
 
-
-
                 ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "", "ip", -1, true, null);
-                //ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
-
-                Row dataRow = table.addRow(Row.ROLE_DATA);
 
                 if(objectCounts != null && objectCounts.length > 0) {
+                    //Not sure why the _last_ entry is grabbed, just making sure we're not grabbing null.
                     ObjectCount lastEntry = objectCounts[objectCounts.length-1];
-                    dataRow.addCell().addContent(monthStart);
-                    dataRow.addCell().addContent(String.valueOf(lastEntry.getCount()));
-                } else {
-                    dataRow.addCell().addContent(monthStart);
-                    dataRow.addCell().addContent(0);
+                    lastEntry.setValue(monthStart);
+                    objectCountArrayList.add(lastEntry);
                 }
 
                 //Then Increment the lower month
                 startCalendar.add(Calendar.MONTH, 1);
             }
 
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
+            Integer[][] monthlyDataGrid = convertObjectCountsToIntegerGrid(objectCountArrayList.toArray(new ObjectCount[objectCountArrayList.size()]), dateFormat);
+            displayAsGrid(division, monthlyDataGrid, "Number of Unique Visitors to the " + getTypeAsString(dso));
+
         } catch (SolrServerException e) {
             log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
         } catch (WingException e) {
             log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+        } catch (ParseException e) {
+            log.error(e.getMessage());
         }
 
     }
