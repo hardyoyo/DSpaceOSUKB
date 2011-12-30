@@ -23,9 +23,9 @@ import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.element.*;
 import org.dspace.app.xmlui.wing.element.List;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.*;
 import org.dspace.content.Collection;
-import org.dspace.content.Community;
-import org.dspace.content.DSpaceObject;
+import org.dspace.content.Item;
 import org.dspace.core.Constants;
 import org.dspace.statistics.Dataset;
 import org.dspace.statistics.ObjectCount;
@@ -186,6 +186,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         // 6++IDEA: Map of the world hits
         //TODO Will implement Country Views chart as a Google Chart that feeds data from JSON solr data.
 
+        // 7 Top 5 Downloads
+        addTopDownloadsToContainer(dso, division);
 
         //
         // Default DSpace Standard Stats Queries Below
@@ -746,6 +748,83 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                     + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
 
+    }
+    
+    public void addTopDownloadsToContainer(DSpaceObject dso, Division division) {
+        // Must be either collection or community.
+        if(!(dso instanceof Collection || dso instanceof Community)) {
+            return;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MONTH, -1);
+        Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
+
+        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
+        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
+        String monthStart = calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMinimum(Calendar.DAY_OF_MONTH)   + "T00:00:00.000Z";
+        String monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+
+        String query = "type:0 AND -isBot:true AND "
+                + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
+                + dso.getID();
+
+        log.info("addFileDownloadsInContainer Query: "+query);
+        log.info("addFileDownloadsInContainer monthEnd:" + monthEnd);
+
+        try {
+            ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "time:["+monthStart+" TO "+monthEnd+"]", "id", 10, false, null);
+
+            Table table = division.addTable("topDownloads", objectCounts.length, 2);
+            table.setHead("Top Downloads to "+getTypeAsString(dso)+" for "+calendar.get(Calendar.YEAR)+"-"+humanMonthNumber);
+            Row header = table.addRow(Row.ROLE_HEADER);
+            header.addCell(Row.ROLE_HEADER).addContent("Title");
+            header.addCell(Row.ROLE_HEADER).addContent("Creator");
+            header.addCell(Row.ROLE_HEADER).addContent("Publisher");
+            header.addCell(Row.ROLE_HEADER).addContent("Date");
+            header.addCell(Row.ROLE_HEADER).addContent("# Downloads");
+            
+            for(ObjectCount object : objectCounts) {
+                Row bodyRow = table.addRow(Row.ROLE_DATA);
+                Bitstream bitstream = Bitstream.find(context, Integer.parseInt(object.getValue()));
+                DSpaceObject parentDSO = bitstream.getParentObject();
+                if (parentDSO instanceof org.dspace.content.Item) {
+                    Item item = (Item) parentDSO;
+                    bodyRow.addCell().addXref("/" + contextPath + "/handle/" + item.getHandle(), item.getName());
+
+                    DCValue[] creators = item.getMetadata("dc.creator");
+                    if(creators != null && creators.length > 0) {
+                        bodyRow.addCell().addContent(creators[0].value);
+                    } else {
+                        bodyRow.addCell();
+                    }
+
+                    DCValue[] publishers = item.getMetadata("dc.publisher");
+                    if(publishers != null && publishers.length > 0) {
+                        bodyRow.addCell().addContent(publishers[0].value);
+                    } else {
+                        bodyRow.addCell();
+                    }
+
+                    DCValue[] dateIssued = item.getMetadata("dc.date.issued");
+                    if(dateIssued != null && dateIssued.length > 0) {
+                        bodyRow.addCell().addContent(dateIssued[0].value);
+                    } else {
+                        bodyRow.addCell();
+                    }
+
+                    bodyRow.addCell().addContent(object.getCount()+"");
+                }
+            }
+
+
+        } catch (SolrServerException e) {
+            log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
+        } catch (WingException e) {
+            log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 
 
