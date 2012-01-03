@@ -150,7 +150,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
         // Build the collection viewer division.
         Division division = home.addDivision("stats", "secondary stats");
-        division.setHead(T_head_title);
+        division.setHead("Statistics for "+dso.getName());
 
         // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
         if(dso instanceof Collection || dso instanceof Community) {
