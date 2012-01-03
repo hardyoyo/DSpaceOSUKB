@@ -777,7 +777,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 DSpaceObject parentDSO = bitstream.getParentObject();
                 if (parentDSO instanceof org.dspace.content.Item) {
                     Item item = (Item) parentDSO;
-                    bodyRow.addCell().addXref("/" + contextPath + "/handle/" + item.getHandle(), item.getName());
+                    bodyRow.addCell().addXref(contextPath + "/handle/" + item.getHandle(), item.getName());
 
                     DCValue[] creators = item.getMetadata("dc.creator");
                     if(creators != null && creators.length > 0) {
