@@ -13,6 +13,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
@@ -144,9 +145,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
     public void renderViewer(Body body, DSpaceObject dso) throws WingException {
 
-        Division home = body.addDivision(
-                Constants.typeText[dso.getType()].toLowerCase() + "-home",
-                "primary repository " + Constants.typeText[dso.getType()].toLowerCase());
+        String typeTextLower = dso.getTypeText().toLowerCase();
+        Division home = body.addDivision(typeTextLower + "-home", "primary repository " + typeTextLower);
 
         // Build the collection viewer division.
         Division division = home.addDivision("stats", "secondary stats");
@@ -356,22 +356,6 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
     }
 
-    public String getTypeAsString(DSpaceObject dso) {
-        switch (dso.getType()) {
-            case 0:
-                return "bitstream";
-            case 2:
-                return "item";
-            case 3:
-                return "collection";
-            case 4:
-                return "community";
-            default:
-                return "";
-
-        }
-    }
-
     /**
      * Only call this on a container object (collection or community).
      * @param dso
@@ -382,13 +366,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         if(!(dso instanceof Collection || dso instanceof Community)) {
             return;
         }
+        
+        String typeTextLower = dso.getTypeText().toLowerCase();
 
         String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
                 "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, " +
-                getTypeAsString(dso) + "2item " +
+                typeTextLower + "2item " +
                 "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND "+
-                getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
-                getTypeAsString(dso) + "2item."+getTypeAsString(dso)+"_id = ? " +
+                typeTextLower + "2item.item_id = item.item_id AND "+
+                typeTextLower + "2item." + typeTextLower +"_id = ? " +
                 ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
         try {
             TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
@@ -396,7 +382,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             java.util.List<TableRow> tableRowList = tri.toList();
             
             Integer[][] monthlyDataGrid = convertTableRowListToIntegerGrid(tableRowList, "yearmo", "countitem");
-            displayAsGrid(division, monthlyDataGrid, "Number of Items Added to the "+getTypeAsString(dso));
+            displayAsGrid(division, monthlyDataGrid, "Number of Items Added to the " + StringUtils.capitalize(typeTextLower));
             
         } catch (SQLException e) {
             log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
@@ -576,14 +562,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         if(!(dso instanceof Collection || dso instanceof Community)) {
             return;
         }
+        String typeTextLower = dso.getTypeText().toLowerCase();
 
         String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
                 "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, item2bundle, bundle, bundle2bitstream, " +
-                getTypeAsString(dso) + "2item " +
+                typeTextLower + "2item " +
                 "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND " +
                     "item2bundle.bundle_id = bundle.bundle_id AND item2bundle.item_id = item.item_id AND bundle.bundle_id = bundle2bitstream.bundle_id AND bundle.\"name\" = 'ORIGINAL' AND "+
-                getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
-                getTypeAsString(dso) + "2item."+getTypeAsString(dso)+"_id = ? " +
+                typeTextLower + "2item.item_id = item.item_id AND "+
+                typeTextLower + "2item."+typeTextLower+"_id = ? " +
                 ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
         try {
             TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
@@ -592,7 +579,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             Integer[][] monthlyDataGrid = convertTableRowListToIntegerGrid(tableRowList, "yearmo", "countitem");
             
-            displayAsGrid(division, monthlyDataGrid, "Number of Files in the "+getTypeAsString(dso));
+            displayAsGrid(division, monthlyDataGrid, "Number of Files in the "+StringUtils.capitalize(typeTextLower));
             //displayAsTableRows(division, tableRowList, "Number of Files in the "+getTypeAsString(dso));
 
         } catch (SQLException e) {
@@ -628,7 +615,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             ObjectCount[] objectCounts = SolrLogger.queryFacetDate(query, "", -1, "MONTH", monthStart, monthEnd, false);
 
             Integer[][] monthlyDataGrid = convertObjectCountsToIntegerGrid(objectCounts);
-            displayAsGrid(division, monthlyDataGrid, "Number of File Downloads in the " + getTypeAsString(dso));
+            displayAsGrid(division, monthlyDataGrid, "Number of File Downloads in the " + StringUtils.capitalize(dso.getTypeText().toLowerCase()));
 
         } catch (SolrServerException e) {
             log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
@@ -672,10 +659,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "", "ip", -1, true, null);
 
                 if(objectCounts != null && objectCounts.length > 0) {
-                    //Not sure why the _last_ entry is grabbed, just making sure we're not grabbing null.
-                    ObjectCount lastEntry = objectCounts[objectCounts.length-1];
-                    lastEntry.setValue(monthStart);
-                    objectCountArrayList.add(lastEntry);
+                    ObjectCount uniquesMonth = new ObjectCount();
+                    uniquesMonth.setValue(monthStart);
+                    uniquesMonth.setCount(objectCounts.length);
+                    objectCountArrayList.add(uniquesMonth);
                 }
 
                 //Then Increment the lower month
@@ -684,7 +671,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
             Integer[][] monthlyDataGrid = convertObjectCountsToIntegerGrid(objectCountArrayList.toArray(new ObjectCount[objectCountArrayList.size()]), dateFormat);
-            displayAsGrid(division, monthlyDataGrid, "Number of Unique Visitors to the " + getTypeAsString(dso));
+            displayAsGrid(division, monthlyDataGrid, "Number of Unique Visitors to the " + StringUtils.capitalize(dso.getTypeText().toLowerCase()));
 
         } catch (SolrServerException e) {
             log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
@@ -776,7 +763,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "time:["+monthStart+" TO "+monthEnd+"]", "id", 10, false, null);
 
             Table table = division.addTable("topDownloads", objectCounts.length, 2);
-            table.setHead("Top Downloads to "+getTypeAsString(dso)+" for "+calendar.get(Calendar.YEAR)+"-"+humanMonthNumber);
+            table.setHead("Top Downloads to "+StringUtils.capitalize(dso.getTypeText().toLowerCase())+" for "+calendar.get(Calendar.YEAR)+"-"+humanMonthNumber);
             Row header = table.addRow(Row.ROLE_HEADER);
             header.addCell(Row.ROLE_HEADER).addContent("Title");
             header.addCell(Row.ROLE_HEADER).addContent("Creator");
