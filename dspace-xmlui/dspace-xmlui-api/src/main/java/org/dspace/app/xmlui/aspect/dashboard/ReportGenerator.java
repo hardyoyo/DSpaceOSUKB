@@ -71,6 +71,7 @@ import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.HandleUtil;
 import org.dspace.app.xmlui.utils.UIException;
 
+import org.dspace.app.xmlui.wing.AbstractWingTransformer;
 import org.dspace.app.xmlui.wing.element.*;
 
 import org.dspace.app.xmlui.wing.Message;
@@ -89,7 +90,7 @@ import org.xml.sax.SAXException;
  * @author "Ryan McGowan" ("mcgowan.98@osu.edu")
  * @version
  */
-public class ReportGenerator extends AbstractDSpaceTransformer
+public class ReportGenerator
 {
     /**
      * A logger for this class.
@@ -116,7 +117,7 @@ public class ReportGenerator extends AbstractDSpaceTransformer
     /**
      * Dspace home
      */
-    private static final Message T_dspace_home = message("xmlui.general.dspace_home");
+    private static final Message T_dspace_home = AbstractWingTransformer.message("xmlui.general.dspace_home");
 
     private Collection collection;
     private String path;
@@ -137,44 +138,17 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         ReportGenerator.VALID_GAP_LENGTHS.add("yearly");
     }
 
-    /**
-     * {@inheritDoc}
-     * @see org.dspace.app.xmlui.cocoon.DSpaceTransformer#addPageMeta(PageMeta)
-     */
-    public void addPageMeta(PageMeta pageMeta) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
-        // Set the page title
-        pageMeta.addMetadata("title").addContent("Report Generator");
-        pageMeta.addTrailLink(contextPath + "/", T_dspace_home);
-        DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
-        if (dso != null) {
-            HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
-            if (dso instanceof Collection) {
-                this.collection = (Collection) dso;
-            } else if (dso instanceof org.dspace.content.Item) {
-                this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
-            } else {
-                pageMeta.addMetadata("title").addContent(" - Invalid Type");
-                log.debug("Attempted to generate report for a handle which is not a collection or an Item.");
-            }
-        } else {
-            pageMeta.addMetadata("title").addContent(" - Invalid Handle");
-            log.error("Accessed page with an unusable handle.");
-        }
-        if (this.collection != null) {
-            pageMeta.addTrailLink(this.getPath(), "Report Generator");
-        }
-    }
 
     /**
      * {@inheritDoc}
      * @see org.dspace.app.xmlui.cocoon.DSpaceTransformer#addBody(Body)
      */
-    public void addBody(Body body) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
+    public void addReportGeneratorForm(Body body, DSpaceObject dso, Request request) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
         Division division = body.addDivision("report-generator", "primary");
         division.setHead("Report Generator");
         division.addPara("Used to generate reports with an arbitrary date range"
                 + " that can be split yearly or monthly.");
-        DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
+
         this.collection = null;
         if (dso != null) {
             if (dso instanceof Collection) {
@@ -188,10 +162,9 @@ public class ReportGenerator extends AbstractDSpaceTransformer
                     + " or an item. (The specified handle is neither.)");
             return;
         }
-        Division search = body.addInteractiveDivision("choose-report", this.getPath(), Division.METHOD_GET, "primary");
+        Division search = body.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
         org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
 
-        Request request = ObjectModelHelper.getRequest(objectModel);
         Map<String, String> params = new HashMap<String, String>();
         for (Enumeration<String> paramNames = (Enumeration<String>) request.getParameterNames();
                 paramNames.hasMoreElements();) {
@@ -411,18 +384,6 @@ public class ReportGenerator extends AbstractDSpaceTransformer
                     + "\") is not valid.");
         }
         return false;
-    }
-
-    /**
-     * Get the path to this report generator.
-     *
-     * @return The path. Ends with "/report-generator"
-     */
-    private String getPath() {
-        if (this.path == null) {
-            this.path = contextPath + "/handle/" + this.collection.getHandle() + "/report-generator";
-        }
-        return this.path;
     }
 
     /**
