@@ -49,6 +49,7 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
 
         <map:transformers>
             <map:transformer name="Dashboard" src="org.dspace.app.xmlui.aspect.dashboard.DashboardViewer"/>
+            <map:transformer name="ReportGenerator" src="org.dspace.app.xmlui.aspect.artifactbrowser.ReportGenerator"/>
         </map:transformers>
 
         <map:matchers default="wildcard">
@@ -109,6 +110,12 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
                     <map:serialize type="xml"/>
                 </map:match>
             </map:match>-->
+
+            <!-- Display report generator -->
+            <map:match pattern="handle/*/*/report-generator">
+              <map:transform type="ReportGenerator"/>
+              <map:serialize type="xml"/>
+            </map:match>
 
             <!-- Not a URL we care about, so just pass it on. -->
             <map:serialize type="xml"/>
