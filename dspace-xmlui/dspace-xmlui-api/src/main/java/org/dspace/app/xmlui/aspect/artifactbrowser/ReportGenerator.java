@@ -46,6 +46,7 @@ import java.sql.SQLException;
 
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import java.util.Date;
 import java.util.Enumeration;
@@ -149,7 +150,6 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         // Set the page title
         pageMeta.addMetadata("title").addContent("Report Generator");
         pageMeta.addTrailLink(contextPath + "/", T_dspace_home);
-        //TODO: Requires a force refresh to work properly
         DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
         if (dso != null) {
             HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
@@ -322,15 +322,19 @@ public class ReportGenerator extends AbstractDSpaceTransformer
             boolean validToAndFrom = true;
             boolean hasFrom = params.containsKey("from");
             boolean hasTo = params.containsKey("to");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             if (hasFrom || hasTo) {
                 if (hasFrom) {
                     fromDate = df.parse(params.get("from"));
+                    params.put("from", dateFormat.format(fromDate));
+                    log.info("from date: " + dateFormat.format(fromDate));
                     log.debug("from: " + params.get("from"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(minimumDate, fromDate, null) <= 0;
                     params.put("from", fromDate.toString());
                 }
                 if (hasTo) {
                     toDate = df.parse(params.get("to"));
+                    params.put("to", dateFormat.format(toDate));
                     log.debug("to: " + params.get("to"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(toDate, maximumDate, null) <= 0;
                     params.put("to", toDate.toString());
@@ -387,6 +391,11 @@ public class ReportGenerator extends AbstractDSpaceTransformer
     private boolean runReport(Map<String,String> params, Division division) throws Exception {
         String report = params.get("report_name");
         //TODO: Get data for reports
+
+        //Print out what report should run for reference.
+        String runningReport = ReportGenerator.describeRunningReport(params);
+        division.addPara(runningReport);
+
         if (report.equals("basic")) {
             //String query = "type:0 AND owningComm:[0 TO 9999999]"
                 //+ " AND -dns:msnbot-* AND -isBot:true"
@@ -395,12 +404,11 @@ public class ReportGenerator extends AbstractDSpaceTransformer
             //ObjectCount[] resultCounts;
             try {
                 //resultCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
-                this.addFilesInContainer(division, this.collection, params.get("from"), params.get("to"));
+                //this.addFilesInContainer(division, this.collection, params.get("from"), params.get("to"));
             } catch (Exception e) {
                 //log.error(StringUtils.capitalize(report) + " Report Query Failed: \""
                         //+ query + "\"\n" + e.getMessage());
             }
-            
         } else if (report.equals("advanced")) {
         } else if (report.equals("arl")) {
         } else {
@@ -410,6 +418,11 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         return false;
     }
 
+    /**
+     * Get the path to this report generator.
+     *
+     * @return The path. Ends with "/report-generator"
+     */
     private String getPath() {
         if (this.path == null) {
             this.path = contextPath + "/handle/" + this.collection.getHandle() + "/report-generator";
@@ -417,6 +430,12 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         return this.path;
     }
 
+    /**
+     * Return the type as a string from the dso.
+     *
+     * @param dso The object to get the type of.
+     * @return The name of the DSpaceObject's type.
+     */
     public static String getTypeAsString(DSpaceObject dso) {
         switch (dso.getType()) {
             case 0:
@@ -433,52 +452,17 @@ public class ReportGenerator extends AbstractDSpaceTransformer
         }
     }
 
-    public void addFilesInContainer(Division division, DSpaceObject dso, String startDate, String endDate) throws Exception {
-        // Must be either collection or community.
-        if(!(dso instanceof Collection || dso instanceof Community)) {
-            throw new Exception("Argument 'dso' is not of type Community or Collection.");
+    public static String describeRunningReport(Map<String,String> params) {
+        String report = params.get("report_name");
+        String from = params.get("from");
+        String to = params.get("to");
+        String fiscal = "";
+        if (params.get("fiscal") == "1") {
+            fiscal = " (rounded to fiscal years)";
         }
-        log.info(startDate);
-        log.info(endDate);
-        String querySpecifyContainer = "SELECT to_char(date_trunc('month', t1.ts), 'YYYY-MM') AS yearmo, count(*) as countitem " +
-            "FROM ( SELECT to_timestamp(text_value, 'YYYY-MM-DD') AS ts FROM metadatavalue, item, item2bundle, bundle, bundle2bitstream, " +
-            ReportGenerator.getTypeAsString(dso) + "2item " +
-            "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND " +
-            "item2bundle.bundle_id = bundle.bundle_id AND item2bundle.item_id = item.item_id AND bundle.bundle_id = bundle2bitstream.bundle_id AND bundle.\"name\" = 'ORIGINAL' AND "+
-            ReportGenerator.getTypeAsString(dso) + "2item.item_id = item.item_id AND "+
-            ReportGenerator.getTypeAsString(dso) + "2item."+ReportGenerator.getTypeAsString(dso)+"_id = ? " +
-            ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
-        try {
-            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
-
-            java.util.List<TableRow> tableRowList = tri.toList();
-
-            Table table = division.addTable("filesInContainer", tableRowList.size()+1, 3);
-            table.setHead("Number of Files in the " + ReportGenerator.getTypeAsString(dso) );
-
-            Row header = table.addRow(Row.ROLE_HEADER);
-            header.addCell().addContent("Month");
-            header.addCell().addContent("#Files Added During Month");
-            header.addCell().addContent("#Files Cumulative");
-
-            int cumulativeHits = 0;
-            for(TableRow row : tableRowList) {
-                Row htmlRow = table.addRow(Row.ROLE_DATA);
-
-                String yearmo = row.getStringColumn("yearmo");
-                htmlRow.addCell().addContent(yearmo);
-
-                long monthlyHits = row.getLongColumn("countitem");
-                htmlRow.addCell().addContent(""+monthlyHits);
-
-                cumulativeHits += monthlyHits;
-                htmlRow.addCell().addContent(""+cumulativeHits);
-            }
-
-        } catch (SQLException e) {
-            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
-        } catch (WingException e) {
-            log.error(e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
-        }
+        String gapLength = params.get("gaplength");
+        
+        return "Running " + report + " report from " + from + " to " + to +
+            fiscal + " compounded " + gapLength + ".";
     }
 }
