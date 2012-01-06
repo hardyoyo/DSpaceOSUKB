@@ -38,7 +38,7 @@
  * DAMAGE.
  */
 
-package org.dspace.app.xmlui.aspect.artifactbrowser;
+package org.dspace.app.xmlui.aspect.dashboard;
 
 import java.io.IOException;
 
@@ -79,12 +79,7 @@ import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.authorize.AuthorizeException;
 
 import org.dspace.content.Collection;
-import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-
-import org.dspace.storage.rdbms.DatabaseManager;
-import org.dspace.storage.rdbms.TableRow;
-import org.dspace.storage.rdbms.TableRowIterator;
 
 import org.xml.sax.SAXException;
 
@@ -99,7 +94,7 @@ public class ReportGenerator extends AbstractDSpaceTransformer
     /**
      * A logger for this class.
      */
-    private static Logger log = Logger.getLogger(DashboardViewer.class);
+    private static Logger log = Logger.getLogger(org.dspace.app.xmlui.aspect.artifactbrowser.DashboardViewer.class);
     /**
      * The minimum date for the from or to field to be. (e.g. The beggining of
      * DSpace)
@@ -381,7 +376,7 @@ public class ReportGenerator extends AbstractDSpaceTransformer
 
     /**
      * Runs a report based on the given parameters. These parameters were
-     * gathered by the form descirbed in {@link ReportGenerator.addBody()}.
+     * gathered by the form described in ReportGenerator.
      *
      * @param params A map describing a set of key value pairs used to determine
      * what report to run and what values to use when running it.

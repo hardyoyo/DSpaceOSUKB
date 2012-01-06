@@ -49,7 +49,7 @@ The Dashboard Aspect is responsible providing a dashboard for statistical inquir
 
         <map:transformers>
             <map:transformer name="Dashboard" src="org.dspace.app.xmlui.aspect.dashboard.DashboardViewer"/>
-            <map:transformer name="ReportGenerator" src="org.dspace.app.xmlui.aspect.artifactbrowser.ReportGenerator"/>
+            <map:transformer name="ReportGenerator" src="org.dspace.app.xmlui.aspect.dashboard.ReportGenerator"/>
         </map:transformers>
 
         <map:matchers default="wildcard">
