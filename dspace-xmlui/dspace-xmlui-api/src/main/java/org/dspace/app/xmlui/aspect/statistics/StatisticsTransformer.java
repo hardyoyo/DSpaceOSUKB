@@ -13,6 +13,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -50,6 +52,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
     private static final String T_head_visits_countries = "xmlui.statistics.visits.countries";
     private static final String T_head_visits_cities = "xmlui.statistics.visits.cities";
     private static final String T_head_visits_bitstream = "xmlui.statistics.visits.bitstreams";
+    
+    private String yearMonthStart = null;
+    private String yearMonthEnd = null;
 
     /**
      * Add a page title and trail links
@@ -151,6 +156,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         // Build the collection viewer division.
         Division division = home.addDivision("stats", "secondary stats");
         division.setHead("Statistics for "+dso.getName());
+        
+        addDateRangePicker(division);
 
         // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
         if(dso instanceof Collection || dso instanceof Community) {
@@ -374,10 +381,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 typeTextLower + "2item " +
                 "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND "+
                 typeTextLower + "2item.item_id = item.item_id AND "+
-                typeTextLower + "2item." + typeTextLower +"_id = ? " +
-                ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+                typeTextLower + "2item." + typeTextLower +"_id = ? ";
+
+        if (yearMonthStart != null && yearMonthEnd != null) {
+            querySpecifyContainer += "AND metadatavalue.text_value > '?' AND metadatavalue.text_value < '?' ";
+        }
+
+        querySpecifyContainer += ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
         try {
-            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
+            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID(), yearMonthStart, yearMonthEnd);
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
@@ -769,7 +781,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             header.addCell(Row.ROLE_HEADER).addContent("Creator");
             header.addCell(Row.ROLE_HEADER).addContent("Publisher");
             header.addCell(Row.ROLE_HEADER).addContent("Date");
-            header.addCell(Row.ROLE_HEADER).addContent("# Downloads");
+            header.addCell(Row.ROLE_HEADER).addContent("# DL");
             
             for(ObjectCount object : objectCounts) {
                 Row bodyRow = table.addRow(Row.ROLE_DATA);
@@ -800,7 +812,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                         bodyRow.addCell();
                     }
 
-                    bodyRow.addCell().addContent(object.getCount()+"");
+                    bodyRow.addCell("downloads", Cell.ROLE_DATA, "right").addContent(object.getCount() + "");
                 }
             }
 
@@ -836,6 +848,69 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             log.error("Error occurred while creating statistics for dso with ID: " + dso.getID()
                     + " and type " + dso.getType() + " and handle: " + dso.getHandle(), e);
         }
+    }
+    
+    public void addDateRangePicker(Division division) throws WingException {
+        Request request = ObjectModelHelper.getRequest(objectModel);
+
+        Division search = division.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
+        search.setHead("Choose your Report Settings");
+
+        org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
+        org.dspace.app.xmlui.wing.element.Item actionSelectItem = actionsList.addItem();
+
+        Select startMonth = actionSelectItem.addSelect("startMonth");
+        startMonth.addOption(false, "", "Choose Start Month");
+
+        Select startYear = actionSelectItem.addSelect("startYear");
+        startYear.addOption(false, "", "Choose Start Year");
+
+        Select endMonth = actionSelectItem.addSelect("endMonth");
+        endMonth.addOption(false, "", "Choose End Month");
+
+        Select endYear = actionSelectItem.addSelect("endYear");
+        endYear.addOption(false, "", "Choose End Year");
+        
+        for(int i = 1; i <=12; i++) {
+            startMonth.addOption(false, String.valueOf(i), DCDate.getMonthName(i, Locale.getDefault()));
+            endMonth.addOption(false, String.valueOf(i), DCDate.getMonthName(i, Locale.getDefault()));
+        }
+        
+
+
+        for(Integer yearIndex = 2004; yearIndex <= DCDate.getCurrent().getYear(); yearIndex++) {
+            startYear.addOption(false, yearIndex.toString(), yearIndex.toString());
+            endYear.addOption(false, yearIndex.toString(), yearIndex.toString());
+        }
+
+        CheckBox reportCheckbox = actionSelectItem.addCheckBox("reportsToInclude");
+        reportCheckbox.addOption("numItems", "Number of Items");
+        reportCheckbox.addOption("numFiles", "Number of Files");
+        reportCheckbox.addOption("numFileDownloads", "Number of File Downloads");
+        reportCheckbox.addOption("numUniqueVisitors", "Number of Unique Visitors");
+        reportCheckbox.addOption("numTopDownloads", "Number of Top Downloads");
+
+        
+        Para buttons = search.addPara();
+        buttons.addButton("submit_add").setValue("Create Report");
+        
+        String paramStartMonth = request.getParameter("startMonth");
+        String paramStartYear = request.getParameter("startYear");
+        String paramEndMonth = request.getParameter("endMonth");
+        String paramEndYear = request.getParameter("endYear");
+        
+        if(paramStartMonth != null && paramStartMonth != "" && paramStartYear != null && paramStartYear != "" && paramEndMonth != null && paramEndMonth != ""  && paramEndYear != null && paramEndYear != "" ) {
+            //TODO SAFE CHECK PARAMS
+            yearMonthStart = paramStartYear+"-"+paramStartMonth;
+            yearMonthEnd = paramEndYear+"-"+paramEndMonth;
+        }
+
+
+        String paramReportName = request.getParameter("reportsToInclude");
+        if((paramReportName != null) && (paramReportName.contains("numItems"))) {
+            search.addPara("Include Report: Number of Items");
+        }
+
     }
 
 
