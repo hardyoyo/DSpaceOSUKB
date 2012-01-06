@@ -143,117 +143,126 @@ public class ReportGenerator
      * {@inheritDoc}
      * @see org.dspace.app.xmlui.cocoon.DSpaceTransformer#addBody(Body)
      */
-    public void addReportGeneratorForm(Body body, DSpaceObject dso, Request request) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
-        Division division = body.addDivision("report-generator", "primary");
-        division.setHead("Report Generator");
-        division.addPara("Used to generate reports with an arbitrary date range"
-                + " that can be split yearly or monthly.");
-
-        this.collection = null;
-        if (dso != null) {
-            if (dso instanceof Collection) {
-                this.collection = (Collection) dso;
-            } else if (dso instanceof org.dspace.content.Item) {
-                this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
-            }
-        }
-        if (this.collection == null) {
-            division.addPara("You may only generate a report from a collection"
-                    + " or an item. (The specified handle is neither.)");
-            return;
-        }
-        Division search = body.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
-        org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
-
-        Map<String, String> params = new HashMap<String, String>();
-        for (Enumeration<String> paramNames = (Enumeration<String>) request.getParameterNames();
-                paramNames.hasMoreElements();) {
-            String param = paramNames.nextElement();
-            params.put(param, request.getParameter(param));
-        }
+    public void addReportGeneratorForm(Division parentDivision, DSpaceObject dso, Request request) {
         try {
-            params = ReportGenerator.checkParameters(params);
-        } catch (Exception e) {
-            log.error("Bad Request. Could may not have all required parameters: " + e.getMessage());
-        }
-        Division reportDiv = body.addDivision("report report-" + params.get("report_name"));
-        if (params != null) {
-            //Run the report
+            Division division = null;
+
+            division = parentDivision.addDivision("report-generator", "primary");
+
+            division.setHead("Report Generator");
+            division.addPara("Used to generate reports with an arbitrary date range"
+                    + " that can be split yearly or monthly.");
+
+            this.collection = null;
+            if (dso != null) {
+                if (dso instanceof Collection) {
+                    this.collection = (Collection) dso;
+                } else if (dso instanceof org.dspace.content.Item) {
+                    this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
+                }
+            }
+            if (this.collection == null) {
+                division.addPara("You may only generate a report from a collection"
+                        + " or an item. (The specified handle is neither.)");
+                return;
+            }
+            Division search = parentDivision.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
+            org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
+
+            Map<String, String> params = new HashMap<String, String>();
+            for (Enumeration<String> paramNames = (Enumeration<String>) request.getParameterNames();
+                 paramNames.hasMoreElements(); ) {
+                String param = paramNames.nextElement();
+                params.put(param, request.getParameter(param));
+            }
             try {
-                this.runReport(params, reportDiv);
+                params = ReportGenerator.checkParameters(params);
             } catch (Exception e) {
-                log.error("Failed to run report with given params: " +
-                        params.toString() + "\n" + e.getMessage());
+                log.error("Bad Request. Could may not have all required parameters: " + e.getMessage());
             }
-        }
-
-        //Create radio buttons to select report type
-        actionsList.addLabel("Label for action list");
-        Item actionSelectItem = actionsList.addItem();
-        Radio actionSelect = actionSelectItem.addRadio("report_name");
-        actionSelect.setRequired();
-        actionSelect.setLabel("Generate a report of type");
-
-        //Set up report_name options with the correct default
-        boolean hasReportName = params.containsKey("report_name");
-        for (String rep : ReportGenerator.VALID_REPORTS) {
-            String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
-            if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets sepcial treatment
-            boolean isDef = false;
-            if (hasReportName) {
-                isDef = params.get("report_name").equals(rep);
-            } else {
-                isDef = rep.equals("basic");
+            Division reportDiv = parentDivision.addDivision("report report-" + params.get("report_name"));
+            if (params != null) {
+                //Run the report
+                try {
+                    this.runReport(params, reportDiv);
+                } catch (Exception e) {
+                    log.error("Failed to run report with given params: " +
+                            params.toString() + "\n" + e.getMessage());
+                }
             }
-            actionSelect.addOption(isDef, rep, prettyRep);
-        }
 
-        //Create Date Range part of form
-        Item dateFrom = actionsList.addItem();
-        Text from = dateFrom.addText("from");
-        from.setLabel("From");
-        if (params.containsKey("from")) {
-            //Set default value if it exists
-            from.setValue(params.get("from"));
-        }
+            //Create radio buttons to select report type
+            actionsList.addLabel("Label for action list");
+            Item actionSelectItem = actionsList.addItem();
+            Radio actionSelect = actionSelectItem.addRadio("report_name");
+            actionSelect.setRequired();
+            actionSelect.setLabel("Generate a report of type");
 
-        Item dateTo = actionsList.addItem();
-        Text to = dateTo.addText("to");
-        to.setLabel("To");
-        if (params.containsKey("to")) {
-            //Set default value if it exists
-            to.setValue(params.get("to"));
-        }
-
-        //Add whether it is fiscal or not
-        Item fiscality = actionsList.addItem();
-        CheckBox isFiscal = fiscality.addCheckBox("fiscal");
-        isFiscal.setLabel("Round date range to fiscal years?");
-        //Set up fiscal option with the correct default
-        isFiscal.addOption(params.containsKey("fiscal") &&
-                params.get("fiscal").equals("1"), 1, "");
-
-        //Add drop down to select gap size
-        Item gapLengthItem = actionsList.addItem();
-        Select gapLength = gapLengthItem.addSelect("gaplength");
-        gapLength.setRequired();
-        gapLength.setLabel("Gap Length");
-
-        //Set up gap length options with the correct default
-        boolean hasGapLength = params.containsKey("gaplength");
-        for (String gap : ReportGenerator.VALID_GAP_LENGTHS) {
-            String prettyGap = StringUtils.capitalize(gap.replaceAll("_", " "));
-            boolean isDef = false;
-            if (hasGapLength) {
-                isDef = params.get("gaplength").equals(gap);
-            } else {
-                isDef = gap.equals("monthly");
+            //Set up report_name options with the correct default
+            boolean hasReportName = params.containsKey("report_name");
+            for (String rep : ReportGenerator.VALID_REPORTS) {
+                String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
+                if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets sepcial treatment
+                boolean isDef = false;
+                if (hasReportName) {
+                    isDef = params.get("report_name").equals(rep);
+                } else {
+                    isDef = rep.equals("basic");
+                }
+                actionSelect.addOption(isDef, rep, prettyRep);
             }
-            gapLength.addOption(isDef, gap, prettyGap);
-        }
 
-        Para buttons = search.addPara();
-        buttons.addButton("submit_add").setValue("Generate");
+            //Create Date Range part of form
+            Item dateFrom = actionsList.addItem();
+            Text from = dateFrom.addText("from");
+            from.setLabel("From");
+            if (params.containsKey("from")) {
+                //Set default value if it exists
+                from.setValue(params.get("from"));
+            }
+
+            Item dateTo = actionsList.addItem();
+            Text to = dateTo.addText("to");
+            to.setLabel("To");
+            if (params.containsKey("to")) {
+                //Set default value if it exists
+                to.setValue(params.get("to"));
+            }
+
+            //Add whether it is fiscal or not
+            Item fiscality = actionsList.addItem();
+            CheckBox isFiscal = fiscality.addCheckBox("fiscal");
+            isFiscal.setLabel("Round date range to fiscal years?");
+            //Set up fiscal option with the correct default
+            isFiscal.addOption(params.containsKey("fiscal") &&
+                    params.get("fiscal").equals("1"), 1, "");
+
+            //Add drop down to select gap size
+            Item gapLengthItem = actionsList.addItem();
+            Select gapLength = gapLengthItem.addSelect("gaplength");
+            gapLength.setRequired();
+            gapLength.setLabel("Gap Length");
+
+            //Set up gap length options with the correct default
+            boolean hasGapLength = params.containsKey("gaplength");
+            for (String gap : ReportGenerator.VALID_GAP_LENGTHS) {
+                String prettyGap = StringUtils.capitalize(gap.replaceAll("_", " "));
+                boolean isDef = false;
+                if (hasGapLength) {
+                    isDef = params.get("gaplength").equals(gap);
+                } else {
+                    isDef = gap.equals("monthly");
+                }
+                gapLength.addOption(isDef, gap, prettyGap);
+            }
+
+            Para buttons = search.addPara();
+            buttons.addButton("submit_add").setValue("Generate");
+        } catch (WingException e) {
+            log.error(e.getMessage());
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+        }
     }
 
     /**
