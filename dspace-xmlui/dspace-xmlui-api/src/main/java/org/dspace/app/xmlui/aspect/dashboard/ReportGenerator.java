@@ -95,7 +95,7 @@ public class ReportGenerator
     /**
      * A logger for this class.
      */
-    private static Logger log = Logger.getLogger(org.dspace.app.xmlui.aspect.artifactbrowser.DashboardViewer.class);
+    private static Logger log = Logger.getLogger(ReportGenerator.class);
     /**
      * The minimum date for the from or to field to be. (e.g. The beggining of
      * DSpace)
@@ -178,7 +178,7 @@ public class ReportGenerator
             try {
                 params = ReportGenerator.checkParameters(params);
             } catch (Exception e) {
-                log.error("Bad Request. Could may not have all required parameters: " + e.getMessage());
+                log.error("Bad Request. May not have all required parameters: " + e.getMessage());
             }
             Division reportDiv = parentDivision.addDivision("report report-" + params.get("report_name"));
             if (params != null) {
@@ -278,20 +278,17 @@ public class ReportGenerator
      * @throws InvalidFormatException
      * @throws ParseException
      */
-    private static Map<String,String> checkParameters(Map<String,String> params) throws InvalidFormatException, ParseException {
+    private static Map<String,String> checkParameters(Map<String,String> params) throws InvalidFormatException, ParseException, Exception {
         //Create dateValidator and min and max dates
-        DateValidator dateValidator = new DateValidator();
-        DateFormat df = DateFormat.getDateTimeInstance();
+        DateValidator dateValidator = new DateValidator(false, DateFormat.SHORT);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
         Date maximumDate = new Date();
         Date minimumDate = null;
-        if (dateValidator.isValid(ReportGenerator.MINIMUM_DATE)) {
-            minimumDate = df.parse(ReportGenerator.MINIMUM_DATE);
-        } else {
-            throw new InvalidFormatException("Given date (\""
-                    + ReportGenerator.MINIMUM_DATE + "\") is not valid.");
-        }
+        minimumDate = dateFormat.parse(ReportGenerator.MINIMUM_DATE);
+
         if (!params.keySet().containsAll(ReportGenerator.REQUIRED_FIELDS)) {
-            return null;
+            throw new Exception("Request did not contain all required fields.");
         } else {
             //Check the to and from dates
             Date fromDate = null;
@@ -299,20 +296,18 @@ public class ReportGenerator
             boolean validToAndFrom = true;
             boolean hasFrom = params.containsKey("from");
             boolean hasTo = params.containsKey("to");
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             if (hasFrom || hasTo) {
                 if (hasFrom) {
-                    fromDate = df.parse(params.get("from"));
+                    fromDate = dateFormat.parse(params.get("from"));
                     params.put("from", dateFormat.format(fromDate));
-                    log.info("from date: " + dateFormat.format(fromDate));
-                    log.debug("from: " + params.get("from"));
+                    log.info("from: " + params.get("from"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(minimumDate, fromDate, null) <= 0;
                     params.put("from", fromDate.toString());
                 }
                 if (hasTo) {
-                    toDate = df.parse(params.get("to"));
+                    toDate = dateFormat.parse(params.get("to"));
                     params.put("to", dateFormat.format(toDate));
-                    log.debug("to: " + params.get("to"));
+                    log.info("to date: " + params.get("to"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(toDate, maximumDate, null) <= 0;
                     params.put("to", toDate.toString());
                 }
@@ -329,7 +324,8 @@ public class ReportGenerator
                 }
                 // Short circuit if the to and from dates are not valid
                 if (!validToAndFrom) {
-                    return null;
+                    throw new Exception("To and from dates are not within max/min or are not in order. "
+                            + params.get("from") + " -> " + params.get("to"));
                 }
             }
 
@@ -337,20 +333,20 @@ public class ReportGenerator
             if (params.containsKey("fiscal")) {
                 log.debug("fiscal: " + params.get("fiscal"));
                 if (Integer.parseInt(params.get("fiscal")) != 1) {
-                    return null;
+                    throw new Exception("Fiscal field did not contain a proper value: " + params.get("fiscal"));
                 }
             }
 
             //Check report_name
             log.debug("report_name: " + params.get("report_name"));
             if (!ReportGenerator.VALID_REPORTS.contains(params.get("report_name"))) {
-                return null;
+                throw new Exception("Invalid report name: " + params.get("report_name"));
             }
 
             //Check gap length
             log.debug("gaplength: " + params.get("gaplength"));
-            if (!ReportGenerator.VALID_GAP_LENGTHS.contains(params.get("report_name"))) {
-                return null;
+            if (!ReportGenerator.VALID_GAP_LENGTHS.contains(params.get("gaplength"))) {
+                throw new Exception("Invalid gaplength: " + params.get("gaplength"));
             }
             return params;
         }
