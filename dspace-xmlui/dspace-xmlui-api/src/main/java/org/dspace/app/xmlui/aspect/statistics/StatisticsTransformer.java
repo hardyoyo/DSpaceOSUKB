@@ -18,6 +18,7 @@ import org.apache.cocoon.environment.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.dspace.app.xmlui.aspect.dashboard.ReportGenerator;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.HandleUtil;
 import org.dspace.app.xmlui.utils.UIException;
@@ -157,7 +158,12 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         Division division = home.addDivision("stats", "secondary stats");
         division.setHead("Statistics for "+dso.getName());
         
+        // Peters Form
         addDateRangePicker(division);
+
+        // Ryan's Form
+        ReportGenerator reportGenerator = new ReportGenerator();
+        reportGenerator.addReportGeneratorForm(division, dso, ObjectModelHelper.getRequest(objectModel));
 
         // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
         if(dso instanceof Collection || dso instanceof Community) {
