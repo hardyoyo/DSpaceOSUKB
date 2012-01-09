@@ -120,7 +120,36 @@ public class ReportGenerator
     private static final Message T_dspace_home = AbstractWingTransformer.message("xmlui.general.dspace_home");
 
     private Collection collection;
-    private String path;
+
+
+    private Map<String, String> params;
+
+    public Date getDateStart() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            return dateFormat.parse(params.get("from"));
+        } catch (ParseException e) {
+            log.error("fromDate parseError"+e.getMessage());
+            return null;
+        }
+    }
+
+    public Date getDateEnd() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            return dateFormat.parse(params.get("to"));
+        } catch (ParseException e) {
+            log.error("toDate parseError"+e.getMessage());
+            return null;
+        }
+    }
+
+
+
+    public Boolean getParamsValid() {
+        return (getDateStart() != null && getDateEnd() != null);
+    }
+
 
     static {
         //Add required fields to the REQUIRED_FIELDS set
@@ -145,51 +174,35 @@ public class ReportGenerator
      */
     public void addReportGeneratorForm(Division parentDivision, DSpaceObject dso, Request request) {
         try {
-            Division division = null;
-
-            division = parentDivision.addDivision("report-generator", "primary");
+            Division division = parentDivision.addDivision("report-generator", "primary");
 
             division.setHead("Report Generator");
             division.addPara("Used to generate reports with an arbitrary date range"
                     + " that can be split yearly or monthly.");
 
-            this.collection = null;
-            if (dso != null) {
-                if (dso instanceof Collection) {
-                    this.collection = (Collection) dso;
-                } else if (dso instanceof org.dspace.content.Item) {
-                    this.collection = ((org.dspace.content.Item) dso).getOwningCollection();
-                }
-            }
-            if (this.collection == null) {
-                division.addPara("You may only generate a report from a collection"
-                        + " or an item. (The specified handle is neither.)");
-                return;
-            }
+
             Division search = parentDivision.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
             org.dspace.app.xmlui.wing.element.List actionsList = search.addList("actions", "form");
 
-            Map<String, String> params = new HashMap<String, String>();
-            for (Enumeration<String> paramNames = (Enumeration<String>) request.getParameterNames();
-                 paramNames.hasMoreElements(); ) {
+            params = new HashMap<String, String>();
+            for (Enumeration<String> paramNames = (Enumeration<String>) request.getParameterNames(); paramNames.hasMoreElements(); ) {
                 String param = paramNames.nextElement();
                 params.put(param, request.getParameter(param));
             }
-            try {
-                params = ReportGenerator.checkParameters(params);
-            } catch (Exception e) {
-                log.error("Bad Request. May not have all required parameters: " + e.getMessage());
-            }
-            Division reportDiv = parentDivision.addDivision("report report-" + params.get("report_name"));
-            if (params != null) {
+
+            params = ReportGenerator.checkAndNormalizeParameters(params);
+
+            /*
+            if (params != null && params.size() > 0) {
                 //Run the report
                 try {
+                    Division reportDiv = parentDivision.addDivision("reportDiv-" + params.get("report_name"));
                     this.runReport(params, reportDiv);
                 } catch (Exception e) {
                     log.error("Failed to run report with given params: " +
                             params.toString() + "\n" + e.getMessage());
                 }
-            }
+            }*/
 
             //Create radio buttons to select report type
             actionsList.addLabel("Label for action list");
@@ -203,7 +216,7 @@ public class ReportGenerator
             for (String rep : ReportGenerator.VALID_REPORTS) {
                 String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
                 if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets sepcial treatment
-                boolean isDef = false;
+                boolean isDef;
                 if (hasReportName) {
                     isDef = params.get("report_name").equals(rep);
                 } else {
@@ -234,8 +247,7 @@ public class ReportGenerator
             CheckBox isFiscal = fiscality.addCheckBox("fiscal");
             isFiscal.setLabel("Round date range to fiscal years?");
             //Set up fiscal option with the correct default
-            isFiscal.addOption(params.containsKey("fiscal") &&
-                    params.get("fiscal").equals("1"), 1, "");
+            isFiscal.addOption(params.containsKey("fiscal") && params.get("fiscal").equals("1"), 1, "");
 
             //Add drop down to select gap size
             Item gapLengthItem = actionsList.addItem();
@@ -260,8 +272,6 @@ public class ReportGenerator
             buttons.addButton("submit_add").setValue("Generate");
         } catch (WingException e) {
             log.error(e.getMessage());
-        } catch (SQLException e) {
-            log.error(e.getMessage());
         }
     }
 
@@ -278,38 +288,39 @@ public class ReportGenerator
      * @throws InvalidFormatException
      * @throws ParseException
      */
-    private static Map<String,String> checkParameters(Map<String,String> params) throws InvalidFormatException, ParseException, Exception {
-        //Create dateValidator and min and max dates
-        DateValidator dateValidator = new DateValidator(false, DateFormat.SHORT);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private static Map<String,String> checkAndNormalizeParameters(Map<String,String> params)  {
+        try {
 
-        Date maximumDate = new Date();
-        Date minimumDate = null;
-        minimumDate = dateFormat.parse(ReportGenerator.MINIMUM_DATE);
+            //Create dateValidator and min and max dates
+            DateValidator dateValidator = new DateValidator(false, DateFormat.SHORT);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-        if (!params.keySet().containsAll(ReportGenerator.REQUIRED_FIELDS)) {
-            throw new Exception("Request did not contain all required fields.");
-        } else {
+            Date maximumDate = new Date();
+            Date minimumDate = dateFormat.parse(ReportGenerator.MINIMUM_DATE);
+
+
+
+            if (!params.keySet().containsAll(ReportGenerator.REQUIRED_FIELDS)) {
+                log.error("Request did not contain all required fields.");
+            }
+
             //Check the to and from dates
             Date fromDate = null;
             Date toDate = null;
             boolean validToAndFrom = true;
-            boolean hasFrom = params.containsKey("from");
-            boolean hasTo = params.containsKey("to");
+            boolean hasFrom = params.containsKey("from") && params.get("from").length() > 0;
+            boolean hasTo = params.containsKey("to") && params.get("to").length() > 0;
+
             if (hasFrom || hasTo) {
                 if (hasFrom) {
                     fromDate = dateFormat.parse(params.get("from"));
                     params.put("from", dateFormat.format(fromDate));
-                    log.info("from: " + params.get("from"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(minimumDate, fromDate, null) <= 0;
-                    params.put("from", fromDate.toString());
                 }
                 if (hasTo) {
                     toDate = dateFormat.parse(params.get("to"));
                     params.put("to", dateFormat.format(toDate));
-                    log.info("to date: " + params.get("to"));
                     validToAndFrom = validToAndFrom && dateValidator.compareDates(toDate, maximumDate, null) <= 0;
-                    params.put("to", toDate.toString());
                 }
                 if (hasFrom && hasTo) {
                     //Make sure hasFrom <= hasTo
@@ -324,31 +335,34 @@ public class ReportGenerator
                 }
                 // Short circuit if the to and from dates are not valid
                 if (!validToAndFrom) {
-                    throw new Exception("To and from dates are not within max/min or are not in order. "
-                            + params.get("from") + " -> " + params.get("to"));
+                    log.error("To and from dates are not within max/min or are not in order. "+ params.get("from") + " -> " + params.get("to"));
+                    return null;
                 }
-            }
 
-            //Check fiscal
-            if (params.containsKey("fiscal")) {
-                log.debug("fiscal: " + params.get("fiscal"));
-                if (Integer.parseInt(params.get("fiscal")) != 1) {
-                    throw new Exception("Fiscal field did not contain a proper value: " + params.get("fiscal"));
+                //Check fiscal
+                if (params.containsKey("fiscal")) {
+                    log.debug("fiscal: " + params.get("fiscal"));
+                    if (Integer.parseInt(params.get("fiscal")) != 1) {
+                        log.error("Fiscal field did not contain a proper value: " + params.get("fiscal"));
+                    }
                 }
-            }
 
-            //Check report_name
-            log.debug("report_name: " + params.get("report_name"));
-            if (!ReportGenerator.VALID_REPORTS.contains(params.get("report_name"))) {
-                throw new Exception("Invalid report name: " + params.get("report_name"));
-            }
+                //Check report_name
+                log.debug("report_name: " + params.get("report_name"));
+                if (!ReportGenerator.VALID_REPORTS.contains(params.get("report_name"))) {
+                    log.error("Invalid report name: " + params.get("report_name"));
+                }
 
-            //Check gap length
-            log.debug("gaplength: " + params.get("gaplength"));
-            if (!ReportGenerator.VALID_GAP_LENGTHS.contains(params.get("gaplength"))) {
-                throw new Exception("Invalid gaplength: " + params.get("gaplength"));
+                //Check gap length
+                log.debug("gaplength: " + params.get("gaplength"));
+                if (!ReportGenerator.VALID_GAP_LENGTHS.contains(params.get("gaplength"))) {
+                    log.error("Invalid gaplength: " + params.get("gaplength"));
+                }
             }
             return params;
+        } catch (ParseException e) {
+            log.error("ParseFormatException likely means a date format failed. "+e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
+            return null;
         }
     }
 
@@ -389,28 +403,6 @@ public class ReportGenerator
                     + "\") is not valid.");
         }
         return false;
-    }
-
-    /**
-     * Return the type as a string from the dso.
-     *
-     * @param dso The object to get the type of.
-     * @return The name of the DSpaceObject's type.
-     */
-    public static String getTypeAsString(DSpaceObject dso) {
-        switch (dso.getType()) {
-            case 0:
-                return "bitstream";
-            case 2:
-                return "item";
-            case 3:
-                return "collection";
-            case 4:
-                return "community";
-            default:
-                return "";
-
-        }
     }
 
     public static String describeRunningReport(Map<String,String> params) {
