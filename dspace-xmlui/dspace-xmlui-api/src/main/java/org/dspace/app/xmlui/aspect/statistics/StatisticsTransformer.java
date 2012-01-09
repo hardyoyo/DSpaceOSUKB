@@ -54,8 +54,11 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
     private static final String T_head_visits_cities = "xmlui.statistics.visits.cities";
     private static final String T_head_visits_bitstream = "xmlui.statistics.visits.bitstreams";
     
-    private String yearMonthStart = null;
-    private String yearMonthEnd = null;
+    private Date dateStart = null;
+    private Date dateEnd = null;
+
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
 
     /**
      * Add a page title and trail links
@@ -159,11 +162,15 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         division.setHead("Statistics for "+dso.getName());
         
         // Peters Form
-        addDateRangePicker(division);
+        //addDateRangePicker(division);
 
         // Ryan's Form
         ReportGenerator reportGenerator = new ReportGenerator();
         reportGenerator.addReportGeneratorForm(division, dso, ObjectModelHelper.getRequest(objectModel));
+        if(reportGenerator.getParamsValid()) {
+            dateStart = reportGenerator.getDateStart();
+            dateEnd = reportGenerator.getDateEnd();
+        }
 
         // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
         if(dso instanceof Collection || dso instanceof Community) {
@@ -389,13 +396,20 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 typeTextLower + "2item.item_id = item.item_id AND "+
                 typeTextLower + "2item." + typeTextLower +"_id = ? ";
 
-        if (yearMonthStart != null && yearMonthEnd != null) {
-            querySpecifyContainer += "AND metadatavalue.text_value > '?' AND metadatavalue.text_value < '?' ";
+
+
+        if (dateStart != null && dateEnd != null) {
+            String start = dateFormat.format(dateStart);
+            String end = dateFormat.format(dateEnd);
+            querySpecifyContainer += "AND metadatavalue.text_value > '"+start+"' AND metadatavalue.text_value < '"+end+"' ";
         }
 
         querySpecifyContainer += ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+        
         try {
-            TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID(), yearMonthStart, yearMonthEnd);
+            TableRowIterator tri;
+            log.info("QUERY FOR ITEM GROWTH: "+querySpecifyContainer);
+            tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
 
             java.util.List<TableRow> tableRowList = tri.toList();
             
@@ -410,6 +424,10 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
     }
     
     public Integer[][] convertTableRowListToIntegerGrid(java.util.List<TableRow> tableRowList, String dateColumn, String valueColumn) {
+        if(tableRowList == null || tableRowList.size() == 0) {
+            return null;
+        }
+
         String yearmoStart = tableRowList.get(0).getStringColumn(dateColumn);
         Integer yearStart = Integer.valueOf(yearmoStart.split("-")[0]);
         String yearmoLast = tableRowList.get(tableRowList.size()-1).getStringColumn(dateColumn);
@@ -520,6 +538,11 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
     }
     
     public void displayAsGrid(Division division, Integer[][] monthlyDataGrid, String header) throws WingException {
+        if(monthlyDataGrid == null || monthlyDataGrid.length == 0) {
+            log.error("Grid has no data: "+ header);
+            return;
+        }
+
         Integer yearStart = monthlyDataGrid[0][0];
         Integer yearLast = monthlyDataGrid[monthlyDataGrid.length-1][0];
         int numberOfYears = yearLast-yearStart;
@@ -670,9 +693,6 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 String query = "type:0 AND -isBot:true AND time:[" + monthStart + " TO " + monthEnd + "]"
                     + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
                     + dso.getID();
-
-                log.info("addUniqueVisitorsToContainer Query: "+query);
-                log.info("addUniqueVisitorsToContainer monthEnd:" + monthEnd);
 
                 ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "", "ip", -1, true, null);
 
@@ -907,8 +927,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         
         if(paramStartMonth != null && paramStartMonth != "" && paramStartYear != null && paramStartYear != "" && paramEndMonth != null && paramEndMonth != ""  && paramEndYear != null && paramEndYear != "" ) {
             //TODO SAFE CHECK PARAMS
-            yearMonthStart = paramStartYear+"-"+paramStartMonth;
-            yearMonthEnd = paramEndYear+"-"+paramEndMonth;
+            //yearMonthStart = paramStartYear+"-"+paramStartMonth;
+            //yearMonthEnd = paramEndYear+"-"+paramEndMonth;
         }
 
 
