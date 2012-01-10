@@ -38,7 +38,7 @@
  * DAMAGE.
  */
 
-package org.dspace.app.xmlui.aspect.dashboard;
+package org.dspace.app.xmlui.aspect.statistics;
 
 import java.text.DateFormat;
 import java.text.ParseException;
