@@ -814,14 +814,22 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             return;
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MONTH, -1);
-        Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
+        String monthStart, monthEnd;
+        if(dateStart != null && dateEnd != null) {
+            monthStart = dateFormat.format(dateStart) + "T00:00:00.000Z";
+            monthEnd = dateFormat.format(dateEnd) + "T23:59:59.999Z";
+            
+        } else {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MONTH, -1);
+            Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
 
-        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
-        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
-        String monthStart = calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMinimum(Calendar.DAY_OF_MONTH)   + "T00:00:00.000Z";
-        String monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+            // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
+            // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
+            monthStart = calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMinimum(Calendar.DAY_OF_MONTH)   + "T00:00:00.000Z";
+            monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+        }
+        
 
         String query = "type:0 AND -isBot:true AND "
                 + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
@@ -832,48 +840,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
         try {
             ObjectCount[] objectCounts = SolrLogger.queryFacetField(query, "time:["+monthStart+" TO "+monthEnd+"]", "id", 10, false, null);
-
-            Table table = division.addTable("topDownloads", objectCounts.length, 2);
-            table.setHead("Top Downloads to "+StringUtils.capitalize(dso.getTypeText().toLowerCase())+" for "+calendar.get(Calendar.YEAR)+"-"+humanMonthNumber);
-            Row header = table.addRow(Row.ROLE_HEADER);
-            header.addCell(Row.ROLE_HEADER).addContent("Title");
-            header.addCell(Row.ROLE_HEADER).addContent("Creator");
-            header.addCell(Row.ROLE_HEADER).addContent("Publisher");
-            header.addCell(Row.ROLE_HEADER).addContent("Date");
-            header.addCell(Row.ROLE_HEADER).addContent("# DL");
-            
-            for(ObjectCount object : objectCounts) {
-                Row bodyRow = table.addRow(Row.ROLE_DATA);
-                Bitstream bitstream = Bitstream.find(context, Integer.parseInt(object.getValue()));
-                DSpaceObject parentDSO = bitstream.getParentObject();
-                if (parentDSO instanceof org.dspace.content.Item) {
-                    Item item = (Item) parentDSO;
-                    bodyRow.addCell().addXref(contextPath + "/handle/" + item.getHandle(), item.getName());
-
-                    DCValue[] creators = item.getMetadata("dc.creator");
-                    if(creators != null && creators.length > 0) {
-                        bodyRow.addCell().addContent(creators[0].value);
-                    } else {
-                        bodyRow.addCell();
-                    }
-
-                    DCValue[] publishers = item.getMetadata("dc.publisher");
-                    if(publishers != null && publishers.length > 0) {
-                        bodyRow.addCell().addContent(publishers[0].value);
-                    } else {
-                        bodyRow.addCell();
-                    }
-
-                    DCValue[] dateIssued = item.getMetadata("dc.date.issued");
-                    if(dateIssued != null && dateIssued.length > 0) {
-                        bodyRow.addCell().addContent(dateIssued[0].value);
-                    } else {
-                        bodyRow.addCell();
-                    }
-
-                    bodyRow.addCell("downloads", Cell.ROLE_DATA, "right").addContent(object.getCount() + "");
-                }
-            }
+            displayTopDownloadsGrid(objectCounts, division, dso);
 
 
         } catch (SolrServerException e) {
@@ -883,7 +850,51 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         } catch (SQLException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+    }
+    
+    public void displayTopDownloadsGrid(ObjectCount[] objectCounts, Division division, DSpaceObject dso) throws WingException, SQLException {
+        Table table = division.addTable("topDownloads", objectCounts.length, 2);
+        table.setHead("Top Downloads to "+StringUtils.capitalize(dso.getTypeText().toLowerCase()));
+        Row header = table.addRow(Row.ROLE_HEADER);
+        header.addCell(Row.ROLE_HEADER).addContent("Title");
+        header.addCell(Row.ROLE_HEADER).addContent("Creator");
+        header.addCell(Row.ROLE_HEADER).addContent("Publisher");
+        header.addCell(Row.ROLE_HEADER).addContent("Date");
+        header.addCell(Row.ROLE_HEADER).addContent("# DL");
+
+        for(ObjectCount object : objectCounts) {
+            Row bodyRow = table.addRow(Row.ROLE_DATA);
+            Bitstream bitstream = Bitstream.find(context, Integer.parseInt(object.getValue()));
+            DSpaceObject parentDSO = bitstream.getParentObject();
+            if (parentDSO instanceof org.dspace.content.Item) {
+                Item item = (Item) parentDSO;
+                bodyRow.addCell().addXref(contextPath + "/handle/" + item.getHandle(), item.getName());
+
+                DCValue[] creators = item.getMetadata("dc.creator");
+                if(creators != null && creators.length > 0) {
+                    bodyRow.addCell().addContent(creators[0].value);
+                } else {
+                    bodyRow.addCell();
+                }
+
+                DCValue[] publishers = item.getMetadata("dc.publisher");
+                if(publishers != null && publishers.length > 0) {
+                    bodyRow.addCell().addContent(publishers[0].value);
+                } else {
+                    bodyRow.addCell();
+                }
+
+                DCValue[] dateIssued = item.getMetadata("dc.date.issued");
+                if(dateIssued != null && dateIssued.length > 0) {
+                    bodyRow.addCell().addContent(dateIssued[0].value);
+                } else {
+                    bodyRow.addCell();
+                }
+
+                bodyRow.addCell("downloads", Cell.ROLE_DATA, "right").addContent(object.getCount() + "");
+            }
         }
+    }
 
 
 
