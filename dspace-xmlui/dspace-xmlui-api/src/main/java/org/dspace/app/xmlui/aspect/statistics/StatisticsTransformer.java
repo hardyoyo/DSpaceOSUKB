@@ -167,10 +167,8 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         // Ryan's Form
         ReportGenerator reportGenerator = new ReportGenerator();
         reportGenerator.addReportGeneratorForm(division, dso, ObjectModelHelper.getRequest(objectModel));
-        if(reportGenerator.getParamsValid()) {
-            dateStart = reportGenerator.getDateStart();
-            dateEnd = reportGenerator.getDateEnd();
-        }
+        dateStart = reportGenerator.getDateStart();
+        dateEnd = reportGenerator.getDateEnd();
 
         // 1 - Number of Items in The Container (Community/Collection) (monthly and cumulative for the year)
         if(dso instanceof Collection || dso instanceof Community) {
@@ -396,19 +394,19 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 typeTextLower + "2item.item_id = item.item_id AND "+
                 typeTextLower + "2item." + typeTextLower +"_id = ? ";
 
-
-
-        if (dateStart != null && dateEnd != null) {
+        if (dateStart != null) {
             String start = dateFormat.format(dateStart);
+            querySpecifyContainer += "AND metadatavalue.text_value > '"+start+"'";
+        }
+        if(dateEnd != null) {
             String end = dateFormat.format(dateEnd);
-            querySpecifyContainer += "AND metadatavalue.text_value > '"+start+"' AND metadatavalue.text_value < '"+end+"' ";
+            querySpecifyContainer += " AND metadatavalue.text_value < '"+end+"' ";
         }
 
         querySpecifyContainer += ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
         
         try {
             TableRowIterator tri;
-            log.info("QUERY FOR ITEM GROWTH: "+querySpecifyContainer);
             tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
 
             java.util.List<TableRow> tableRowList = tri.toList();
@@ -611,8 +609,19 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
                 "WHERE metadata_field_id = 12 AND metadatavalue.item_id = item.item_id AND item.in_archive=true AND " +
                     "item2bundle.bundle_id = bundle.bundle_id AND item2bundle.item_id = item.item_id AND bundle.bundle_id = bundle2bitstream.bundle_id AND bundle.\"name\" = 'ORIGINAL' AND "+
                 typeTextLower + "2item.item_id = item.item_id AND "+
-                typeTextLower + "2item."+typeTextLower+"_id = ? " +
-                ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+                typeTextLower + "2item."+typeTextLower+"_id = ? ";
+
+        if (dateStart != null) {
+            String start = dateFormat.format(dateStart);
+            querySpecifyContainer += "AND metadatavalue.text_value > '"+start+"'";
+        }
+        if(dateEnd != null) {
+            String end = dateFormat.format(dateEnd);
+            querySpecifyContainer += " AND metadatavalue.text_value < '"+end+"' ";
+        }
+
+        querySpecifyContainer += ") t1 GROUP BY date_trunc('month', t1.ts) order by yearmo asc";
+
         try {
             TableRowIterator tri = DatabaseManager.query(context, querySpecifyContainer, dso.getID());
 
