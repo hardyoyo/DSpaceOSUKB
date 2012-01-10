@@ -40,10 +40,6 @@
 
 package org.dspace.app.xmlui.aspect.dashboard;
 
-import java.io.IOException;
-
-import java.sql.SQLException;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -55,7 +51,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.cocoon.environment.ObjectModelHelper;
 import org.apache.cocoon.environment.Request;
 
 import org.apache.commons.lang.StringUtils;
@@ -66,23 +61,11 @@ import org.apache.log4j.Logger;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
-import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
-
-import org.dspace.app.xmlui.utils.HandleUtil;
-import org.dspace.app.xmlui.utils.UIException;
-
-import org.dspace.app.xmlui.wing.AbstractWingTransformer;
 import org.dspace.app.xmlui.wing.element.*;
 
-import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 
-import org.dspace.authorize.AuthorizeException;
-
-import org.dspace.content.Collection;
 import org.dspace.content.DSpaceObject;
-
-import org.xml.sax.SAXException;
 
 /**
  * Use a form to dynamically generate a variety of reports.
@@ -97,13 +80,11 @@ public class ReportGenerator
      */
     private static Logger log = Logger.getLogger(ReportGenerator.class);
     /**
-     * The minimum date for the from or to field to be. (e.g. The beggining of
-     * DSpace)
+     * The minimum date for the from or to field to be. (e.g. The beginning of DSpace)
      */
     private static String MINIMUM_DATE = "2008-01-01";
     /**
-     * A set containing all of the fields that must exist for a request to
-     * generate a report.
+     * A set containing all of the fields that must exist for a request to generate a report.
      */
     private static Set<String> REQUIRED_FIELDS;
     /**
@@ -114,13 +95,6 @@ public class ReportGenerator
      * Valid values for report_name parameter.
      */
     private static Set<String> VALID_REPORTS;
-    /**
-     * Dspace home
-     */
-    private static final Message T_dspace_home = AbstractWingTransformer.message("xmlui.general.dspace_home");
-
-    private Collection collection;
-
 
     private Map<String, String> params;
 
@@ -201,18 +175,6 @@ public class ReportGenerator
 
             params = ReportGenerator.checkAndNormalizeParameters(params);
 
-            /*
-            if (params != null && params.size() > 0) {
-                //Run the report
-                try {
-                    Division reportDiv = parentDivision.addDivision("reportDiv-" + params.get("report_name"));
-                    this.runReport(params, reportDiv);
-                } catch (Exception e) {
-                    log.error("Failed to run report with given params: " +
-                            params.toString() + "\n" + e.getMessage());
-                }
-            }*/
-
             //Create radio buttons to select report type
             actionsList.addLabel("Label for action list");
             Item actionSelectItem = actionsList.addItem();
@@ -224,7 +186,7 @@ public class ReportGenerator
             boolean hasReportName = params.containsKey("report_name");
             for (String rep : ReportGenerator.VALID_REPORTS) {
                 String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
-                if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets sepcial treatment
+                if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets special treatment
                 boolean isDef;
                 if (hasReportName) {
                     isDef = params.get("report_name").equals(rep);
@@ -238,6 +200,7 @@ public class ReportGenerator
             Item dateFrom = actionsList.addItem();
             Text from = dateFrom.addText("from");
             from.setLabel("From");
+            from.setHelp("The start date of the report, ex 2008-01-01");
             if (params.containsKey("from")) {
                 //Set default value if it exists
                 from.setValue(params.get("from"));
@@ -246,6 +209,7 @@ public class ReportGenerator
             Item dateTo = actionsList.addItem();
             Text to = dateTo.addText("to");
             to.setLabel("To");
+            to.setHelp("The end date of the report, ex 2010-12-31");
             if (params.containsKey("to")) {
                 //Set default value if it exists
                 to.setValue(params.get("to"));
@@ -254,7 +218,7 @@ public class ReportGenerator
             //Add whether it is fiscal or not
             Item fiscality = actionsList.addItem();
             CheckBox isFiscal = fiscality.addCheckBox("fiscal");
-            isFiscal.setLabel("Round date range to fiscal years?");
+            isFiscal.setLabel("Use Fiscal Years?");
             //Set up fiscal option with the correct default
             isFiscal.addOption(params.containsKey("fiscal") && params.get("fiscal").equals("1"), 1, "");
 
