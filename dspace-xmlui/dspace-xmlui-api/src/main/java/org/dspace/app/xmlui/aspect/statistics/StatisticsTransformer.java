@@ -18,7 +18,6 @@ import org.apache.cocoon.environment.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.dspace.app.xmlui.aspect.dashboard.ReportGenerator;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.HandleUtil;
 import org.dspace.app.xmlui.utils.UIException;
@@ -645,14 +644,25 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             return;
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MONTH, -1);
-        Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
-
-        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
-        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
-        String monthStart = "2008-01-01T00:00:00.000Z";
-        String monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+        String monthStart;
+        if(dateStart != null) {
+            monthStart = dateFormat.format(dateStart) + "T00:00:00.000Z";
+        }   else {
+            // In our situation, we have no usage statistics before Jan 1, 2008.
+            monthStart = "2008-01-01T00:00:00.000Z";
+        }
+        
+        String monthEnd;
+        if(dateEnd != null) {
+            monthEnd = dateFormat.format(dateEnd) + "T23:59:59.999Z";
+        }   else {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MONTH, -1);
+            Integer humanMonthNumber = calendar.get(Calendar.MONTH)+1;
+            
+            monthEnd =  calendar.get(Calendar.YEAR) + "-" + humanMonthNumber + "-" + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)   + "T23:59:59.999Z";
+        }
+ 
 
         String query = "type:0 AND -isBot:true AND "
                 + ((dso instanceof Collection) ? "owningColl:" : "owningComm:")
@@ -682,14 +692,23 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             return;
         }
 
-        // We have a hard-limit to our stats Data of Jan 1, 2008. So locally we can start 1/1/2008
-        // 2011-08-01T00:00:00.000Z TO 2011-08-31T23:59:59.999Z
         try {
             GregorianCalendar startCalendar = new GregorianCalendar();
-            startCalendar.set(2008, Calendar.JANUARY, 1, 0, 0, 0);
+
+            if(dateStart != null) {
+                startCalendar.setTime(dateStart);
+            }   else {
+                // In our situation, we have no usage statistics before Jan 1, 2008.
+                startCalendar.set(2008, Calendar.JANUARY, 1, 0, 0, 0);
+            }
 
             Calendar endCalendar = Calendar.getInstance();
-            endCalendar.add(Calendar.MONTH, -1);
+
+            if(dateEnd != null) {
+                endCalendar.setTime(dateEnd);
+            }   else {
+                endCalendar.add(Calendar.MONTH, -1);
+            }
 
             ArrayList<ObjectCount> objectCountArrayList = new ArrayList<ObjectCount>();
 
@@ -783,7 +802,12 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
         }
 
     }
-    
+
+    /**
+     * Get top downloads for the past month.
+     * @param dso
+     * @param division
+     */
     public void addTopDownloadsToContainer(DSpaceObject dso, Division division) {
         // Must be either collection or community.
         if(!(dso instanceof Collection || dso instanceof Community)) {
