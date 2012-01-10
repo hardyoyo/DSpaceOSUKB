@@ -126,6 +126,10 @@ public class ReportGenerator
 
     public Date getDateStart() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if(! params.containsKey("from")) {
+            return null;
+        }
+
         try {
             return dateFormat.parse(params.get("from"));
         } catch (ParseException e) {
@@ -136,6 +140,11 @@ public class ReportGenerator
 
     public Date getDateEnd() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        if(! params.containsKey("to")) {
+            return null;
+        }
+
         try {
             return dateFormat.parse(params.get("to"));
         } catch (ParseException e) {
