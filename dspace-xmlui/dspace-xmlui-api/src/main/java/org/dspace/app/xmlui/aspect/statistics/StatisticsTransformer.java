@@ -165,7 +165,7 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
 
         // Ryan's Form
         ReportGenerator reportGenerator = new ReportGenerator();
-        reportGenerator.addReportGeneratorForm(division, dso, ObjectModelHelper.getRequest(objectModel));
+        reportGenerator.addReportGeneratorForm(division, ObjectModelHelper.getRequest(objectModel));
         dateStart = reportGenerator.getDateStart();
         dateEnd = reportGenerator.getDateEnd();
 

@@ -83,18 +83,6 @@ public class ReportGenerator
      * The minimum date for the from or to field to be. (e.g. The beginning of DSpace)
      */
     private static String MINIMUM_DATE = "2008-01-01";
-    /**
-     * A set containing all of the fields that must exist for a request to generate a report.
-     */
-    private static Set<String> REQUIRED_FIELDS;
-    /**
-     * Valid values for gaplength parameter.
-     */
-    private static Set<String> VALID_GAP_LENGTHS;
-    /**
-     * Valid values for report_name parameter.
-     */
-    private static Set<String> VALID_REPORTS;
 
     private Map<String, String> params;
 
@@ -129,39 +117,16 @@ public class ReportGenerator
 
 
 
-    public Boolean getParamsValid() {
-        return (getDateStart() != null && getDateEnd() != null);
-    }
-
-
-    static {
-        //Add required fields to the REQUIRED_FIELDS set
-        ReportGenerator.REQUIRED_FIELDS = new HashSet<String>();
-        ReportGenerator.REQUIRED_FIELDS.add("report_name");
-        ReportGenerator.REQUIRED_FIELDS.add("gaplength");
-        //Add valid field values to VALID_REPORTS
-        ReportGenerator.VALID_REPORTS = new HashSet<String>();
-        ReportGenerator.VALID_REPORTS.add("advanced");
-        ReportGenerator.VALID_REPORTS.add("arl");
-        ReportGenerator.VALID_REPORTS.add("basic");
-        //Add valid field values to VALID_GAP_LENGTHS
-        ReportGenerator.VALID_GAP_LENGTHS = new HashSet<String>();
-        ReportGenerator.VALID_GAP_LENGTHS.add("monthly");
-        ReportGenerator.VALID_GAP_LENGTHS.add("yearly");
-    }
-
-
     /**
      * {@inheritDoc}
      * @see org.dspace.app.xmlui.cocoon.DSpaceTransformer#addBody(Body)
      */
-    public void addReportGeneratorForm(Division parentDivision, DSpaceObject dso, Request request) {
+    public void addReportGeneratorForm(Division parentDivision, Request request) {
         try {
             Division division = parentDivision.addDivision("report-generator", "primary");
 
             division.setHead("Report Generator");
-            division.addPara("Used to generate reports with an arbitrary date range"
-                    + " that can be split yearly or monthly.");
+            division.addPara("Used to generate reports with an arbitrary date range.");
 
 
             Division search = parentDivision.addInteractiveDivision("choose-report", request.getRequestURI(), Division.METHOD_GET, "primary");
@@ -174,27 +139,6 @@ public class ReportGenerator
             }
 
             params = ReportGenerator.checkAndNormalizeParameters(params);
-
-            //Create radio buttons to select report type
-            actionsList.addLabel("Label for action list");
-            Item actionSelectItem = actionsList.addItem();
-            Radio actionSelect = actionSelectItem.addRadio("report_name");
-            actionSelect.setRequired();
-            actionSelect.setLabel("Generate a report of type");
-
-            //Set up report_name options with the correct default
-            boolean hasReportName = params.containsKey("report_name");
-            for (String rep : ReportGenerator.VALID_REPORTS) {
-                String prettyRep = StringUtils.capitalize(rep.replaceAll("_", " "));
-                if (prettyRep.equals("Arl")) prettyRep = "ARL"; //ARL gets special treatment
-                boolean isDef;
-                if (hasReportName) {
-                    isDef = params.get("report_name").equals(rep);
-                } else {
-                    isDef = rep.equals("basic");
-                }
-                actionSelect.addOption(isDef, rep, prettyRep);
-            }
 
             //Create Date Range part of form
             Item dateFrom = actionsList.addItem();
@@ -221,25 +165,6 @@ public class ReportGenerator
             isFiscal.setLabel("Use Fiscal Years?");
             //Set up fiscal option with the correct default
             isFiscal.addOption(params.containsKey("fiscal") && params.get("fiscal").equals("1"), 1, "");
-
-            //Add drop down to select gap size
-            Item gapLengthItem = actionsList.addItem();
-            Select gapLength = gapLengthItem.addSelect("gaplength");
-            gapLength.setRequired();
-            gapLength.setLabel("Gap Length");
-
-            //Set up gap length options with the correct default
-            boolean hasGapLength = params.containsKey("gaplength");
-            for (String gap : ReportGenerator.VALID_GAP_LENGTHS) {
-                String prettyGap = StringUtils.capitalize(gap.replaceAll("_", " "));
-                boolean isDef = false;
-                if (hasGapLength) {
-                    isDef = params.get("gaplength").equals(gap);
-                } else {
-                    isDef = gap.equals("monthly");
-                }
-                gapLength.addOption(isDef, gap, prettyGap);
-            }
 
             Para buttons = search.addPara();
             buttons.addButton("submit_add").setValue("Generate");
@@ -270,12 +195,6 @@ public class ReportGenerator
 
             Date maximumDate = new Date();
             Date minimumDate = dateFormat.parse(ReportGenerator.MINIMUM_DATE);
-
-
-
-            if (!params.keySet().containsAll(ReportGenerator.REQUIRED_FIELDS)) {
-                log.error("Request did not contain all required fields.");
-            }
 
             //Check the to and from dates
             Date fromDate = null;
@@ -320,75 +239,11 @@ public class ReportGenerator
                     }
                 }
 
-                //Check report_name
-                log.debug("report_name: " + params.get("report_name"));
-                if (!ReportGenerator.VALID_REPORTS.contains(params.get("report_name"))) {
-                    log.error("Invalid report name: " + params.get("report_name"));
-                }
-
-                //Check gap length
-                log.debug("gaplength: " + params.get("gaplength"));
-                if (!ReportGenerator.VALID_GAP_LENGTHS.contains(params.get("gaplength"))) {
-                    log.error("Invalid gaplength: " + params.get("gaplength"));
-                }
             }
             return params;
         } catch (ParseException e) {
             log.error("ParseFormatException likely means a date format failed. "+e.getMessage());  //To change body of catch statement use File | Settings | File Templates.
             return null;
         }
-    }
-
-    /**
-     * Runs a report based on the given parameters. These parameters were
-     * gathered by the form described in ReportGenerator.
-     *
-     * @param params A map describing a set of key value pairs used to determine
-     * what report to run and what values to use when running it.
-     * @return Successfully generated the specified report.
-     * @throws Exception
-     */
-    private boolean runReport(Map<String,String> params, Division division) throws Exception {
-        String report = params.get("report_name");
-        //TODO: Get data for reports
-
-        //Print out what report should run for reference.
-        String runningReport = ReportGenerator.describeRunningReport(params);
-        division.addPara(runningReport);
-
-        if (report.equals("basic")) {
-            //String query = "type:0 AND owningComm:[0 TO 9999999]"
-                //+ " AND -dns:msnbot-* AND -isBot:true"
-                //+ " AND ";
-            //log.info(StringUtils.capitalize(report) + " Report Query: " + query);
-            //ObjectCount[] resultCounts;
-            try {
-                //resultCounts = SolrLogger.queryFacetField(query, "", "id", 50, true, null);
-                //this.addFilesInContainer(division, this.collection, params.get("from"), params.get("to"));
-            } catch (Exception e) {
-                //log.error(StringUtils.capitalize(report) + " Report Query Failed: \""
-                        //+ query + "\"\n" + e.getMessage());
-            }
-        } else if (report.equals("advanced")) {
-        } else if (report.equals("arl")) {
-        } else {
-            throw new Exception("Report name (\"" + report
-                    + "\") is not valid.");
-        }
-        return false;
-    }
-
-    public static String describeRunningReport(Map<String,String> params) {
-        String report = params.get("report_name");
-        String from = params.get("from");
-        String to = params.get("to");
-        String fiscal = "";
-        if (params.get("fiscal") == "1") {
-            fiscal = " (rounded to fiscal years)";
-        }
-        String gapLength = params.get("gaplength");
-        
-        return "Running " + report + " report from " + from + " to " + to +
-            fiscal + " compounded " + gapLength + ".";
     }
 }
