@@ -1,17 +1,27 @@
 package org.dspace.app.xmlui.aspect.dashboard;
 
 import au.com.bytecode.opencsv.CSVWriter;
+import org.apache.avalon.excalibur.pool.Recyclable;
+import org.apache.avalon.framework.parameters.Parameters;
+import org.apache.cocoon.ProcessingException;
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
+import org.apache.cocoon.environment.Response;
+import org.apache.cocoon.environment.SourceResolver;
+import org.apache.cocoon.reading.AbstractReader;
 import org.apache.log4j.Logger;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.core.Context;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
+import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * Exporting Collection's in CSV format
@@ -20,11 +30,25 @@ import java.sql.SQLException;
  * Time: 11:56 AM
  * To change this template use File | Settings | File Templates.
  */
-public class CollectionInfo extends AbstractDSpaceTransformer
+public class CollectionInfo extends AbstractReader implements Recyclable
 {
     protected static final Logger log = Logger.getLogger(CollectionInfo.class);
+    protected Response response;
+    protected Request request;
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+    @Override
+    public void generate() throws IOException, SAXException, ProcessingException {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setup(SourceResolver resolver, Map objectModel, String src, Parameters par)
+            throws ProcessingException, SAXException, IOException
+    {
+        super.setup(resolver, objectModel, src, par);
+        this.request = ObjectModelHelper.getRequest(objectModel);
+        this.response = ObjectModelHelper.getResponse(objectModel);
+
         response.setContentType("text/csv; encoding='UTF-8'");
         response.setStatus(HttpServletResponse.SC_OK);
         response.setHeader("Content-Disposition", "attachment; filename=collection-list.csv") ;
