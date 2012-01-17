@@ -102,4 +102,9 @@ public class CommunityInfo extends AbstractReader implements Recyclable
         return tri;
 
     }
+
+    public void recycle() {
+        this.response = null;
+        this.request = null;
+    }
 }
