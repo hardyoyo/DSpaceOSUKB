@@ -115,7 +115,6 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         actionSelect.setLabel("Choose a Report to View");
         actionSelect.addOption(false, "itemgrowth", "Number of Items in the Repository (Monthly) -- Google Chart");
         actionSelect.addOption(false, "commitems", "Items in Communities");
-        actionSelect.addOption(false, "bitstreamVisits", "Bitstream Visits");
         actionSelect.addOption(false, "topDownloadsMonth", "Top Downloads for Month");
 
         Para buttons = search.addPara();
@@ -134,9 +133,6 @@ public class DashboardViewer extends AbstractDSpaceTransformer
         } else if(reportName.equals("commitems"))
         {
             queryNumberOfItemsPerComm(division);
-        } else if(reportName.equals("bitstreamVisits"))
-        {
-            addBitstreamsStatisticsVisits(division);
         } else if (reportName.equals("topDownloadsMonth"))
         {
             addMonthlyTopDownloads(division);
@@ -252,39 +248,6 @@ public class DashboardViewer extends AbstractDSpaceTransformer
             dataRow.addCell().addContent(community_id);
 
             dataRow.addCell().addContent(numItems.intValue());
-        }
-    }
-
-    public void addBitstreamsStatisticsVisits(Division division) throws WingException
-    {
-        try {
-            int[] bitstreamIDs = { 194902, 194903, 211372, 211373, 211398, 211399, 211420, 211422, 211593, 211594, 211595, 211596, 211599, 211600,
-                                    211601, 211603, 211782, 211783, 212024, 212030, 213498, 213995, 214013 };
-
-            //Set some constants
-            final String dateType = "DAY";
-            final String rangeStart = "-30";
-            final String rangeEnd = "+1";
-
-            //Table dimensions are width of date range, and height of number of bitstreamID's to look at.
-            Table table = division.addTable("name", bitstreamIDs.length, getWidthOfTimeFacet(bitstreamIDs[0], dateType, rangeStart, rangeEnd) + 2); //Plus two for name beginning, and total at end
-            table.setHead("Bitstream table for Brian flickr");
-
-            //Add the dates to the table
-            getNumberOfVisitsToBitstream(table, true, bitstreamIDs[0], dateType, rangeStart, rangeEnd);
-
-            //Add the values to the table. I'm assuming the width of each is the same.
-            for (int i = 0; i < bitstreamIDs.length; i++) {
-                getNumberOfVisitsToBitstream(table, false, bitstreamIDs[i], dateType, rangeStart, rangeEnd);
-            }
-        }
-        catch(SolrServerException sse)
-        {
-            log.error(sse.getMessage());
-        }
-        catch(SQLException sqle)
-        {
-            log.error(sqle.getMessage());
         }
     }
 
