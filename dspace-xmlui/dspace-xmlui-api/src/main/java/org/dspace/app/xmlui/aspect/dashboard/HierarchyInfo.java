@@ -2,6 +2,14 @@ package org.dspace.app.xmlui.aspect.dashboard;
 
 
 import au.com.bytecode.opencsv.CSVWriter;
+import org.apache.avalon.excalibur.pool.Recyclable;
+import org.apache.avalon.framework.parameters.Parameters;
+import org.apache.cocoon.ProcessingException;
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
+import org.apache.cocoon.environment.Response;
+import org.apache.cocoon.environment.SourceResolver;
+import org.apache.cocoon.reading.AbstractReader;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
@@ -9,43 +17,66 @@ import org.dspace.content.*;
 import org.dspace.core.Context;
 import org.dspace.statistics.ObjectCount;
 import org.dspace.statistics.SolrLogger;
+import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * Exporting Community and hierarchy in CSV format
  */
-public class HierarchyInfo extends AbstractDSpaceTransformer
+public class HierarchyInfo extends AbstractReader implements Recyclable
 {
     protected static final Logger log = Logger.getLogger(HierarchyInfo.class);
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("text/csv; encoding='UTF-8'");
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setHeader("Content-Disposition", "attachment; filename=hierarchy-info.csv") ;
-        CSVWriter writer = new CSVWriter(response.getWriter());
+    /** The Cocoon response */
+    protected Response response;
 
-        String[] firstRow = initHierarchyLine();
-        writer.writeNext(firstRow);
+    /** The Cocoon request */
+    protected Request request;
 
+    @Override
+    public void generate() throws IOException, SAXException, ProcessingException {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setup(SourceResolver resolver, Map objectModel, String src, Parameters par)
+            throws ProcessingException, SAXException, IOException
+    {
+        super.setup(resolver, objectModel, src, par);
         try {
-            Context context = new Context();
-            Community[] topCommunities = Community.findAllTop(context);
-            String[] rowString = new String[Hierarchy.values().length];
+            this.request = ObjectModelHelper.getRequest(objectModel);
+            this.response = ObjectModelHelper.getResponse(objectModel);
 
-            for(Community community : topCommunities) {
-                addCommunityHierarchy(community, 0, writer, rowString);
+            response.setContentType("text/csv; encoding='UTF-8'");
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setHeader("Content-Disposition", "attachment; filename=hierarchy-info.csv") ;
+            CSVWriter writer = new CSVWriter(response.getWriter());
+
+            String[] firstRow = initHierarchyLine();
+            writer.writeNext(firstRow);
+
+            try {
+                Context context = new Context();
+                Community[] topCommunities = Community.findAllTop(context);
+                String[] rowString = new String[Hierarchy.values().length];
+
+                for(Community community : topCommunities) {
+                    addCommunityHierarchy(community, 0, writer, rowString);
+                }
+
+            } catch (SQLException e) {
+                log.error(e.getMessage());
             }
 
-        } catch (SQLException e) {
+            writer.close();
+        } catch (Exception e) {
             log.error(e.getMessage());
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
 
-        writer.close();
     }
 
     protected void addCommunityHierarchy(Community community, Integer communityDepth, CSVWriter csvWriter, String[] rowString) throws SQLException {
@@ -168,6 +199,8 @@ public class HierarchyInfo extends AbstractDSpaceTransformer
         return hierarchyLine;
     }
 
+
+
     protected enum Hierarchy {
         TopCommunity,
         SubCom1,
@@ -181,5 +214,8 @@ public class HierarchyInfo extends AbstractDSpaceTransformer
         BitstreamViews;
     }
 
-
+    public void recycle() {
+        this.response = null;
+        this.request = null;
+    }
 }
