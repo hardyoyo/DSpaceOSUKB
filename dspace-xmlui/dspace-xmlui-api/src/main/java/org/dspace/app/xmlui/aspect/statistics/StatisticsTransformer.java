@@ -740,9 +740,9 @@ public class StatisticsTransformer extends AbstractDSpaceTransformer {
             displayAsGrid(division, monthlyDataGrid, "Number of Unique Visitors to the " + StringUtils.capitalize(dso.getTypeText().toLowerCase()));
 
         } catch (SolrServerException e) {
-            log.error("addFileDownloadsInContainer Solr Query Failed: " + e.getMessage());
+            log.error("addUniqueVisitorsToContainer Solr Query Failed: " + e.getMessage());
         } catch (WingException e) {
-            log.error("addFileDownloadsInContainer WingException: " + e.getMessage());
+            log.error("addUniqueVisitorsToContainer WingException: " + e.getMessage());
         } catch (ParseException e) {
             log.error(e.getMessage());
         }

@@ -79,6 +79,7 @@ public class Navigation extends AbstractDSpaceTransformer implements CacheablePr
             statistics.addItemXref(contextPath + "/statistics-home", T_statistics_view);
         }
 
+        // Add a link to the stats Dashboard if the user is a member of the admin group.
         if(context.getCurrentUser() != null && AuthorizeManager.isAdmin(context)) {
             statistics.addItemXref(contextPath + "/dashboard", "Dashboard");
         }
