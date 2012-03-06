@@ -26,11 +26,13 @@ $(document).ready(function() {
 
     // Return which side, left or right, that a given page should be displayed on
     br.getPageSide = function(index) {
-        //TODO - We have no way to know which side a book starts on
-        if (0 == (index & 0x1)) {
-            return 'R';
-        } else {
+        //TODO - We can't determine which side a book starts on from the content.
+        // Allow for user-supplied metadata from dc.relation.haspart values either left or right for first page.
+        var side = $('meta[name=DCTERMS.hasPart]').attr('content');
+        if(side == 'left') {
             return 'L';
+        } else {
+            return 'R';
         }
     }
 
