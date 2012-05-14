@@ -1,0 +1,3 @@
+[submodule "play-ui"]
+	path = play-ui
+	url = git@github.com:osulibraries/KB-Play-UI.git
